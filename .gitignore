@@ -1,0 +1,104 @@
+# --- Python-specific ---
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+.python-version
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Build & Distribution ---
+build/
+dist/
+*.exe
+*.bin
+*.msi
+*.dmg
+*.whl
+*.tar.gz
+*.xpi
+pip-wheel-metadata/
+
+# --- Testing & Coverage ---
+.coverage
+htmlcov/
+.coverage.*
+.cache
+.pytest_cache/
+test-results.xml
+.mypy_cache/
+
+# --- IDE & Editor Files ---
+.vscode/
+.idea/
+*.iml
+*.sublime-workspace
+*.swp
+*.swo
+*.komodoproject
+*.kdev4
+*.sublime-project
+*.sublime-workspace
+
+# --- OS & Tooling ---
+.DS_Store
+Thumbs.db
+*.log
+*.log.*
+*.pid
+*.seed
+*.pid.lock
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# --- Documentation ---
+docs/_build/
+docs/api/
+site/
+
+# --- Local Development ---
+local.settings.json
+.nyc_output/
+.terraform/
+
+# --- Jupyter / Notebooks ---
+.ipynb_checkpoints/
+
+# --- Logs and Databases ---
+*.sql
+*.sqlite
+*.db
+
+# --- Backup Files ---
+*~
+*.bak
+
+# --- Packaging ---
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# --- Athena-specific ---
+# Ignore compiled Athena bytecode (if applicable)
+*.abc  # Athena Bytecode
+*.ast  # Athena AST Dumps
+
+# Ignore debug/test outputs
+debug_output.txt
+test_output/
+
+# --- Custom Overrides ---
+# Add project-specific ignores below
