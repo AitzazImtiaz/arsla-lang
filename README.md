@@ -17,35 +17,14 @@ The language was inspired by Dijkstra's quote
 
 # Table of Contents
 - [Introduction](#Introduction)
-  - [RPN methodology](#RPN-methodology)
 - [Features](#features)
   - [Stack-Based implementation](#Stack-Based-implementation)
+- [Installation](#installation)
 
 ## Introduction
 Reverse Polish notation reverses an infix notation to a postfix notation. For example `a + b` is transcribed to `b a +`. This repository implements
 such a programming language that is aimed to golf solutions, or store research-based data. We design an interpreter which aims to develop this goal.
 
-### RPN methodology
-```mermaid
-flowchart TD
-    A[Level 0: Main Process] --> B[1. Start]
-    A --> C[2. Main Operation Loop]
-    A --> D[3. Repeat Indefinitely]
-    
-    C --> E[2.1 Key in Next Number]
-    C --> F[2.2 Check One-Number Operations]
-    C --> G[2.3 Check Two-Number Operations]
-    C --> H[2.4 Enter ⬆️]
-    
-    F --> I[2.2.1 If possible]
-    I --> J[Perform Operation]
-    
-    G --> K[2.3.1 If possible]
-    K --> L[Perform Operation]
-    
-    style A stroke-width:2px
-    style C stroke-width:1.5px
-```
 
 ##  Features
 
@@ -55,3 +34,9 @@ flowchart TD
 - **Vectorization**: Apply operations to entire array  
   Example: `[1 2 3]2+` → `[3 4 5]`
   
+## Installation
+```bash
+pip install arsla-lang
+```
+
+Arsla will be downloaded but requiring on system, may have specific alterations.
