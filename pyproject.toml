@@ -47,14 +47,14 @@ Homepage      = "https://github.com/aitzazimtiaz/arsla-lang"
 Documentation = "https://github.com/aitzazimtiaz/arsla--lang/wiki"
 
 [project.scripts]
-arsla = "mygolf.cli:main"
+arsla = "arsla.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where   = ["src"]
-include = ["mygolf*"]
+include = ["arsla*"]
 
 [tool.pytest.ini_options]
 addopts     = "--verbose --color=yes"
@@ -77,7 +77,7 @@ exclude        = '''
 
 [tool.isort]
 profile               = "black"
-known_first_party     = ["mygolf"]
+known_first_party     = ["arsla"]
 line_length           = 88
 multi_line_output     = 3
 include_trailing_comma = true
@@ -97,8 +97,8 @@ target-version = ["py38"]
 
 [tool.coverage.run]
 branch = true
-source = ["src/mygolf"]
-omit   = ["src/mygolf/cli.py"]
+source = ["src/arsla"]
+omit   = ["src/arsla/cli.py"]
 
 [tool.coverage.report]
 show_missing   = true
