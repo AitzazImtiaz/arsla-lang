@@ -1,0 +1,10 @@
+site_name: "Arsla Language"
+theme:
+  name: "material"
+docs_dir: docs
+site_dir: _build
+nav:
+  - Home: index.md
+markdown_extensions:
+  - toc
+  - admonition
