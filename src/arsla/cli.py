@@ -39,13 +39,13 @@ def main():
     # enforce .ah extension at parse-time
     def ah_file(path):
         from pathlib import Path
-        if Path(path).suffix.lower() != ".ah":
-            raise argparse.ArgumentTypeError("file must end in .ah")
+        if Path(path).suffix.lower() != ".aw":
+            raise argparse.ArgumentTypeError("file must end in .aw")
         return path
     run_parser.add_argument(
         "file",
         type=ah_file,
-        help="Arsla source file to execute (must end in .ah)"
+        help="Arsla source file to execute (must end in .aw)"
     )
 
     run_parser.add_argument("--show-stack", action="store_true", help="Print full stack after execution")
