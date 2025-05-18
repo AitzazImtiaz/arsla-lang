@@ -44,7 +44,7 @@ dev = [
 [project.urls]
 Repository    = "https://github.com/aitzazimtiaz/arsla-lang"
 Homepage      = "https://github.com/aitzazimtiaz/arsla-lang"
-Documentation = "https://github.com/aitzazimtiaz/arsla--lang/wiki"
+Documentation = "https://github.com/aitzazimtiaz/arsla-lang/wiki"
 
 [project.scripts]
 arsla = "arsla.cli:main"
