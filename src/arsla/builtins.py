@@ -118,7 +118,10 @@ def div(stack):
         return a / b
     _numeric_op(stack, safe_div, "/")
 
-
+def mod(stack: Stack) -> None:
+    """%: Modulo"""
+    _numeric_op(stack, lambda a, b: a % b)
+    
 def power(stack: Stack) -> None:
     """^: Exponentiation"""
     _numeric_op(stack, lambda a, b: a ** b)
