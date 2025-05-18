@@ -18,7 +18,6 @@ from pathlib import Path
 import subprocess
 from rich.console import Console
 import readline
-import pyreadline
 
 from .lexer import tokenize, ArslaLexerError
 from .parser import parse, ArslaParserError
