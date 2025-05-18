@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-import pkg_resources
+import importlib.resources
 
 # Token definition
 Token = namedtuple('Token', ['type', 'value'])
@@ -12,17 +12,15 @@ class ArslaLexerError(Exception):
 
 def _load_symbols(filename='symbols.txt'):
     """
-    Load valid symbol characters from an external file.
+    Load valid symbol characters from an external file within the arsla package.
     Each symbol should be on its own line or separated by whitespace.
     """
     try:
-        # If installed as a package, use pkg_resources
-        data = pkg_resources.resource_string(__name__, filename).decode('utf-8')
-    except Exception:
-        # Fallback to direct file read
+        data = importlib.resources.read_text(__package__, filename)
+    except (FileNotFoundError, ModuleNotFoundError):
+        # Fallback to direct file read in current directory
         with open(filename, 'r', encoding='utf-8') as f:
             data = f.read()
-
     # Split on whitespace or newlines
     symbols = set(data.strip().split())
     return symbols
