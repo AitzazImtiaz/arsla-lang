@@ -111,10 +111,12 @@ def mul(stack: Stack) -> None:
         raise ArslaRuntimeError(f"Multiply failed: {str(e)}")
 
 
-def div(stack: Stack) -> None:
-    """/: Division"""
-    _numeric_op(stack, lambda a, b: a / b)
-
+def div(stack):
+    def safe_div(a, b):
+        if b == 0:
+            raise ArslaRuntimeError("Runtime Error: Division by zero is not allowed.")
+        return a / b
+    _numeric_op(stack, safe_div)
 
 def mod(stack: Stack) -> None:
     """%: Modulo"""
