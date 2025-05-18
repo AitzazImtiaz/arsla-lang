@@ -40,11 +40,9 @@ def clear_stack(stack: Stack) -> None:
 # Arithmetic Operations
 # ----------------------
 
-def _numeric_op(stack, op):
+def _numeric_op(stack, op, operation_name=None):
     if len(stack) < 2:
-        state = stack.copy()
-        operation = op.__name__
-        raise ArslaRuntimeError("Need ≥2 elements for operation", state, operation)
+        raise ArslaRuntimeError("Need ≥2 elements for operation", stack.copy(), operation_name or op.__name__)
 
     b = stack.pop()
     a = stack.pop()
@@ -59,7 +57,6 @@ def _numeric_op(stack, op):
                 raise ArslaRuntimeError("Invalid operand types")
         except TypeError:
             raise ArslaRuntimeError(f"Unsupported types: {type(a)} and {type(b)}")
-
 
 def _vector_op(a, b, op):
     """Handle vectorized operations"""
