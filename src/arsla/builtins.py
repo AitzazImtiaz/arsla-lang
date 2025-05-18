@@ -42,13 +42,15 @@ def clear_stack(stack: Stack) -> None:
 
 def _numeric_op(stack, op, operation_name=None):
     if len(stack) < 2:
-        raise ArslaRuntimeError("Need ≥2 elements for operation", stack.copy(), operation_name or op.__name__)
+        state = stack.copy()
+        operation = operation_name or op.__name__
+        raise ArslaRuntimeError("Need ≥2 elements for operation", state, operation)
 
     b = stack.pop()
     a = stack.pop()
 
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-        stack.append(op(a, b, stack.copy(), operation_name or op.__name__))
+        stack.append(op(a, b))  # <-- only pass a and b to op
     else:
         try:
             if isinstance(a, list) or isinstance(b, list):
