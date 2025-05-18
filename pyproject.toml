@@ -88,6 +88,9 @@ ignore_missing_imports = true
 show_error_codes      = true
 exclude               = "(tests/|examples/|docs/)"
 
+[tool.setuptools.package-data]
+"arsla" = ["symbols.txt"]
+
 [tool.ruff]
 line-length    = 88
 select         = ["E", "W", "F", "I", "B", "UP", "PL", "RUF"]
