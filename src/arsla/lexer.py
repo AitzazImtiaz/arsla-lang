@@ -1,5 +1,6 @@
 import re
 from collections import namedtuple
+import pkg_resources
 
 # Token definition
 Token = namedtuple('Token', ['type', 'value'])
@@ -7,6 +8,28 @@ Token = namedtuple('Token', ['type', 'value'])
 class ArslaLexerError(Exception):
     """Raised for lexing errors in Arsla code."""
     pass
+
+
+def _load_symbols(filename='symbols.txt'):
+    """
+    Load valid symbol characters from an external file.
+    Each symbol should be on its own line or separated by whitespace.
+    """
+    try:
+        # If installed as a package, use pkg_resources
+        data = pkg_resources.resource_string(__name__, filename).decode('utf-8')
+    except Exception:
+        # Fallback to direct file read
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = f.read()
+
+    # Split on whitespace or newlines
+    symbols = set(data.strip().split())
+    return symbols
+
+# Load SYMBOLS from external file
+SYMBOLS = _load_symbols()
+
 
 def tokenize(code: str) -> list:
     """
@@ -24,8 +47,7 @@ def tokenize(code: str) -> list:
     tokens = []
     pos = 0
     length = len(code)
-    number_re = re.compile(r'^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?')  # Matches integers/floats
-    SYMBOLS = {'+', '-', '*', '/', '%', '^', '!', 'D', 'S', '$', '<', '>', '=', 'W', '?', 'P', 'R', 'p', 'C'}
+    number_re = re.compile(r'^-?(?:\d+\.?\d*|\.?\d+)(?:[eE][+-]?\d+)?')  # Matches integers/floats
 
     while pos < length:
         char = code[pos]
