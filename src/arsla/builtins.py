@@ -50,7 +50,7 @@ def _numeric_op(stack, op):
     a = stack.pop()
 
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-        stack.append(op(a, b))
+        stack.append(op(a, b, stack.copy(), operation_name or op.__name__))
     else:
         try:
             if isinstance(a, list) or isinstance(b, list):
@@ -112,15 +112,11 @@ def mul(stack: Stack) -> None:
 
 
 def div(stack):
-    def safe_div(a, b):
+    def safe_div(a, b, stack_state, operation):
         if b == 0:
-            raise ArslaRuntimeError("Runtime Error: Division by zero is not allowed.")
+            raise ArslaRuntimeError("Runtime Error: Division by zero is not allowed.", stack_state, operation)
         return a / b
-    _numeric_op(stack, safe_div)
-
-def mod(stack: Stack) -> None:
-    """%: Modulo"""
-    _numeric_op(stack, lambda a, b: a % b)
+    _numeric_op(stack, safe_div, "/")
 
 
 def power(stack: Stack) -> None:
