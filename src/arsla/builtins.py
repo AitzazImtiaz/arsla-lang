@@ -111,7 +111,7 @@ def mul(stack: Stack) -> None:
 def div(stack):
     def safe_div(a, b, stack_state, operation):
         if b == 0:
-            raise ArslaRuntimeError("Runtime Error: Division by zero is not allowed.", stack_state, operation)
+            raise ArslaRuntimeError("Division by zero is not allowed.", stack_state, operation)
         return a / b
     _numeric_op(stack, safe_div, "/")
 
