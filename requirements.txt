@@ -12,3 +12,4 @@ mkdocs-material
 mkdocs
 collections
 readline
+pyreadline3
