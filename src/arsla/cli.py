@@ -17,7 +17,15 @@ import webbrowser
 from pathlib import Path
 import subprocess
 from rich.console import Console
-import readline
+import platform
+
+try:
+    if platform.system() == 'Windows':
+        import pyreadline3 as readline
+    else:
+        import readline
+except ImportError as e:
+    print("Readline module could not be loaded:", e)
 
 from .lexer import tokenize, ArslaLexerError
 from .parser import parse, ArslaParserError
