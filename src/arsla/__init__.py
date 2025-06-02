@@ -39,6 +39,7 @@ def version() -> str:
     """Get the current Arsla version"""
     return f"Arsla {__version__} (interpreter {__version__})"
 
+
 # Initialize package logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
