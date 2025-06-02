@@ -1,0 +1,34 @@
+name: Ruff Auto-Fix on Python Changes
+
+on:
+  push:
+    paths:
+      - '**.py'
+
+jobs:
+  lint-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff and Auto-fix
+        run: |
+          ruff check . --fix
+          git config --global user.name "dumbog"
+          git config --global user.email "dumbog@example.com"
+          git add .
+          git diff --cached --quiet || git commit -m "fix: auto lint fixes by Ruff 🤖"
+
+      - name: Push fixes as dumbog
+        if: success()
+        run: git push https://x-access-token:${{ secrets.DUMBOG_PAT }}@github.com/${{ github.repository }} HEAD:main
