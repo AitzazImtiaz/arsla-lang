@@ -1,12 +1,11 @@
 """Tests for the Interpreter of the Arsla Code Golf Language."""
 
+import pytest
 from typing import Any
 from unittest.mock import Mock, patch
 
-import pytest
-
-from arsla.errors import ArslaRuntimeError, ArslaStackUnderflowError
 from arsla.interpreter import Interpreter
+from arsla.errors import ArslaRuntimeError, ArslaStackUnderflowError
 
 
 class MockToken:
