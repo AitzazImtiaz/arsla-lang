@@ -44,11 +44,4 @@ def version() -> str:
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # Public API exports
-__all__ = [
-    'ArslaError',
-    'Interpreter',
-    'execute',
-    'parse',
-    'tokenize',
-    'version'
-]
+__all__ = ["ArslaError", "Interpreter", "execute", "parse", "tokenize", "version"]

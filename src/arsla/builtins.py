@@ -10,6 +10,7 @@ Stack = List[Atom]
 # Stack Manipulation Builtins
 # --------------------------
 
+
 def duplicate(stack: Stack) -> None:
     """D: Duplicate top stack element"""
     if not stack:
@@ -36,9 +37,11 @@ def clear_stack(stack: Stack) -> None:
     """C: Clear the entire stack"""
     stack.clear()
 
+
 # ----------------------
 # Arithmetic Operations
 # ----------------------
+
 
 def _numeric_op(stack, op, operation_name=None):
     if len(stack) < 2:
@@ -59,6 +62,7 @@ def _numeric_op(stack, op, operation_name=None):
                 raise ArslaRuntimeError("Invalid operand types")
         except TypeError:
             raise ArslaRuntimeError(f"Unsupported types: {type(a)} and {type(b)}")
+
 
 def _vector_op(a, b, op):
     """Handle vectorized operations"""
@@ -113,17 +117,22 @@ def mul(stack: Stack) -> None:
 def div(stack):
     def safe_div(a, b, stack_state, operation):
         if b == 0:
-            raise ArslaRuntimeError("Division by zero is not allowed.", stack_state, operation)
+            raise ArslaRuntimeError(
+                "Division by zero is not allowed.", stack_state, operation
+            )
         return a / b
+
     _numeric_op(stack, safe_div, "/")
+
 
 def mod(stack: Stack) -> None:
     """%: Modulo"""
     _numeric_op(stack, lambda a, b: a % b)
-    
+
+
 def power(stack: Stack) -> None:
     """^: Exponentiation"""
-    _numeric_op(stack, lambda a, b: a ** b)
+    _numeric_op(stack, lambda a, b: a**b)
 
 
 def factorial(stack: Stack) -> None:
@@ -135,9 +144,11 @@ def factorial(stack: Stack) -> None:
         raise ArslaRuntimeError("Factorial requires non-negative integers")
     stack.append(math.factorial(n))
 
+
 # ---------------------
 # Comparison Operations
 # ---------------------
+
 
 def less_than(stack: Stack) -> None:
     """<: Less than (pushes 1/0)"""
@@ -162,12 +173,15 @@ def equal(stack: Stack) -> None:
     a, b = stack.pop(), stack.pop()
     stack.append(1 if a == b else 0)
 
+
 # ---------------------
 # Special Builtins
 # ---------------------
 
+
 def next_prime(stack: Stack) -> None:
     """P: Next prime after n"""
+
     def is_prime(n):
         if n < 2:
             return False
@@ -208,26 +222,27 @@ def print_top(stack: Stack) -> None:
         raise ArslaStackUnderflowError(1, 0, stack, "p")
     print(stack.pop())
 
+
 # ---------------------
 # Command Registry
 # ---------------------
 
 BUILTINS = {
-    'D': duplicate,
-    'S': swap,
-    '$': pop_top,
-    'C': clear_stack,
-    '+': add,
-    '-': sub,
-    '*': mul,
-    '/': div,
-    '%': mod,
-    '^': power,
-    '!': factorial,
-    '<': less_than,
-    '>': greater_than,
-    '=': equal,
-    'P': next_prime,
-    'R': reverse,
-    'p': print_top
+    "D": duplicate,
+    "S": swap,
+    "$": pop_top,
+    "C": clear_stack,
+    "+": add,
+    "-": sub,
+    "*": mul,
+    "/": div,
+    "%": mod,
+    "^": power,
+    "!": factorial,
+    "<": less_than,
+    ">": greater_than,
+    "=": equal,
+    "P": next_prime,
+    "R": reverse,
+    "p": print_top,
 }
