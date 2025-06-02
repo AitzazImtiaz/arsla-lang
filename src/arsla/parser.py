@@ -4,6 +4,7 @@ Arsla Parser Module
 Converts token streams into executable abstract syntax trees (ASTs)
 with proper value resolution for literals and blocks.
 """
+
 from typing import Any, List
 
 from .errors import ArslaParserError
@@ -25,12 +26,12 @@ def parse(tokens: List[Token]) -> List[Any]:
     stack = [[]]
     current_depth = 0
     for token in tokens:
-        if token.type == 'BLOCK_START':
+        if token.type == "BLOCK_START":
             new_block = []
             stack[-1].append(new_block)
             stack.append(new_block)
             current_depth += 1
-        elif token.type == 'BLOCK_END':
+        elif token.type == "BLOCK_END":
             if current_depth == 0:
                 raise ArslaParserError("Unmatched ']' without opening '['")
             stack.pop()
@@ -40,6 +41,7 @@ def parse(tokens: List[Token]) -> List[Any]:
     if current_depth > 0:
         raise ArslaParserError(f"Unclosed {current_depth} block(s) - missing ']'")
     return stack[0]
+
 
 def flatten_block(block: List[Any]) -> List[Token]:
     """Flatten a nested block structure into a linear list of tokens.
@@ -56,10 +58,14 @@ def flatten_block(block: List[Any]) -> List[Token]:
     tokens = []
     for element in block:
         if isinstance(element, list):
-            tokens.append(Token('BLOCK_START', '['))
+            tokens.append(Token("BLOCK_START", "["))
             tokens.extend(flatten_block(element))
-            tokens.append(Token('BLOCK_END', ']'))
+            tokens.append(Token("BLOCK_END", "]"))
         else:
-            token_type = 'NUMBER' if isinstance(element, (int, float)) else 'STRING' if isinstance(element, str) else 'SYMBOL'
+            token_type = (
+                "NUMBER"
+                if isinstance(element, (int, float))
+                else "STRING" if isinstance(element, str) else "SYMBOL"
+            )
             tokens.append(Token(token_type, element))
     return tokens
