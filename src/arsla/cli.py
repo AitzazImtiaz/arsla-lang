@@ -106,7 +106,7 @@ def run_file(path: str, debug: bool, show_stack: bool):
       show_stack: Show the interpreter stack even if the program completes successfully (bool).
 
     Returns:
-      A list representing the program's result. Returns an empty list if the program produces no output.
+      A list representing program's result. Returns empty list when program produces no output.
 
     Raises:
       ArslaError: If an error occurs during program execution.
