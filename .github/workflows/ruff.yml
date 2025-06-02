@@ -1,21 +1,45 @@
-- name: Run Ruff and Auto-fix
-  id: ruff_fix
-  run: |
-    set +e  # ignore errors so script continues
-    ruff check . --fix
-    set -e  # restore exit-on-error
+name: Ruff Auto-Fix Commit Directly
 
-    git config --global user.name "dumbog"
-    git config --global user.email "dumbog@example.com"
+on: push
 
-    BRANCH_NAME="auto/lint-fix-${{ github.run_id }}"
-    git checkout -b "$BRANCH_NAME"
+jobs:
+  lint-fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-    git add .
-    if ! git diff --cached --quiet; then
-      git commit -m "fix: [auto-fix] lint issues by Ruff 🤖"
-      git push https://x-access-token:${{ secrets.DUMBOG_PAT }}@github.com/${{ github.repository }} "$BRANCH_NAME"
-      echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-      echo "changes_made=true" >> $GITHUB_OUTPUT
-    else
-      echo "changes_made=false" >> $GITHUB_OUTPUT
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff and Auto-fix
+        id: ruff_fix
+        run: |
+          set +e  # continue even if ruff exits with error due to unfixed issues
+          ruff check . --fix
+          set -e
+
+          git config --global user.name "dumbog"
+          git config --global user.email "dumbog@example.com"
+
+          BRANCH_NAME="auto/lint-fix-${{ github.run_id }}"
+          git checkout -b "$BRANCH_NAME"
+
+          git add .
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: [auto-fix] lint issues by Ruff 🤖"
+            git push https://x-access-token:${{ secrets.DUMBOG_PAT }}@github.com/${{ github.repository }} "$BRANCH_NAME"
+            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+            echo "changes_made=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes_made=false" >> $GITHUB_OUTPUT
