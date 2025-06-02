@@ -13,6 +13,7 @@ Token = namedtuple("Token", ["type", "value"])
 
 class ArslaLexerError(Exception):
     """Raised for lexing errors in Arsla code."""
+
     pass
 
 
@@ -133,8 +134,8 @@ def _tokenize_string(code: str, pos: int) -> tuple[Token, int]:
             else:
                 # For unrecognized escape sequences, treat the backslash and
                 # the character as literals (as per original logic).
-                str_chars.append("\\") # Keep the backslash
-                str_chars.append(char) # Append the character
+                str_chars.append("\\")  # Keep the backslash
+                str_chars.append(char)  # Append the character
             escape = False
         elif char == "\\":
             escape = True
@@ -145,9 +146,7 @@ def _tokenize_string(code: str, pos: int) -> tuple[Token, int]:
             str_chars.append(char)
         pos += 1
 
-    raise ArslaLexerError(
-        f"Unterminated string starting at position {start_pos}"
-    )
+    raise ArslaLexerError(f"Unterminated string starting at position {start_pos}")
 
 
 def _tokenize_number(code: str, pos: int) -> tuple[Token, int]:
