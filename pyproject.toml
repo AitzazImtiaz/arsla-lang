@@ -99,11 +99,6 @@ target-version = "py38"
 select = ["E", "W", "F", "I", "B", "UP", "PL", "RUF"]
 ignore = ["E501"]
 
-[tool.docstringgen]
-style = "google"
-paths = ["."]
-recursive = true
-
 [tool.coverage.run]
 branch = true
 source = ["src/arsla"]
