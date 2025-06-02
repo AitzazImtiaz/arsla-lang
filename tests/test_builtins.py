@@ -1,6 +1,7 @@
 """Tests for the built-in operations in the Arsla stack-based language."""
 
 import pytest
+
 from arsla.builtins import (
     add,
     clear_stack,
