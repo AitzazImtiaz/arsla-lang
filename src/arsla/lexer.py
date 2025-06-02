@@ -13,7 +13,6 @@ Token = namedtuple("Token", ["type", "value"])
 
 class ArslaLexerError(Exception):
     """Raised for lexing errors in Arsla code."""
-
     pass
 
 
@@ -32,7 +31,6 @@ def _load_symbols(filename="symbols.txt"):
     try:
         data = importlib.resources.read_text(__package__, filename)
     except (FileNotFoundError, ModuleNotFoundError):
-        # Fallback for when running directly without package installed
         with open(filename, encoding="utf-8") as f:
             data = f.read()
     symbols = set(data.strip().split())
@@ -41,7 +39,6 @@ def _load_symbols(filename="symbols.txt"):
 
 SYMBOLS = _load_symbols()
 
-# Pre-compile regex for numbers for efficiency
 _NUMBER_RE = re.compile(r"^-?(?:\d+\.?\d*|\.?\d+)(?:[eE][+-]?\d+)?")
 
 
@@ -115,14 +112,13 @@ def _tokenize_string(code: str, pos: int) -> tuple[Token, int]:
         ArslaLexerError: If the string is not properly terminated.
     """
     start_pos = pos
-    pos += 1  # Move past the opening '"'
+    pos += 1
     str_chars = []
     escape = False
 
     while pos < len(code):
         char = code[pos]
         if escape:
-            # Handle escape sequences
             if char == "n":
                 str_chars.append("\n")
             elif char == "t":
@@ -132,21 +128,21 @@ def _tokenize_string(code: str, pos: int) -> tuple[Token, int]:
             elif char == "\\":
                 str_chars.append("\\")
             else:
-                # For unrecognized escape sequences, treat the backslash and
-                # the character as literals (as per original logic).
-                str_chars.append("\\")  # Keep the backslash
-                str_chars.append(char)  # Append the character
+                str_chars.append("\\")
+                str_chars.append(char)
             escape = False
         elif char == "\\":
             escape = True
         elif char == '"':
-            pos += 1  # Move past the closing '"'
+            pos += 1
             return Token("STRING", "".join(str_chars)), pos
         else:
             str_chars.append(char)
         pos += 1
 
-    raise ArslaLexerError(f"Unterminated string starting at position {start_pos}")
+    raise ArslaLexerError(
+        f"Unterminated string starting at position {start_pos}"
+    )
 
 
 def _tokenize_number(code: str, pos: int) -> tuple[Token, int]:
