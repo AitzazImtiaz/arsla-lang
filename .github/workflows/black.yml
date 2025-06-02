@@ -15,10 +15,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # CRITICAL: Must use PAT for authentication
+          # Use PAT for authentication
           token: ${{ secrets.DUMBOG_PAT }}
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -26,45 +26,49 @@ jobs:
       - name: Install Black
         run: pip install black
 
-      - name: Run Black and Auto-format
+      - name: Run Black and Commit Changes
         id: black_fix
         run: |
-          # Run Black formatter
+          # Run formatter
           black .
           
-          # Configure git identity
-          git config --global user.name "dumbog"
-          git config --global user.email "dumbog@example.com"
+          # Configure Git
+          git config --global user.name "GitHub Black Formatter"
+          git config --global user.email "actions@users.noreply.github.com"
           
-          # Create new branch
+          # Create branch
           BRANCH_NAME="auto/black-fix-${{ github.run_id }}"
           git checkout -b "$BRANCH_NAME"
           
-          # Commit changes if any
+          # Commit changes
           git add .
-          if ! git diff --cached --quiet; then
-            git commit -m "fix: [auto-format] Python code formatted by Black 🤖"
-            
-            # Push using PAT-authenticated origin
-            git push origin "$BRANCH_NAME"
-            
-            # Set outputs
+          if git diff --cached --quiet; then
+            echo "No changes detected"
+            echo "changes_made=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "fix: [auto-format] Python code formatted by Black"
             echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
             echo "changes_made=true" >> $GITHUB_OUTPUT
-          else
-            echo "changes_made=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Push Changes
+        if: steps.black_fix.outputs.changes_made == 'true'
+        run: |
+          # Push using PAT authentication
+          git push origin "${{ steps.black_fix.outputs.branch_name }}" \
+            --force-with-lease \
+            --verbose
 
       - name: Create Pull Request
         if: steps.black_fix.outputs.changes_made == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          # Use same PAT for PR creation
           token: ${{ secrets.DUMBOG_PAT }}
           branch: ${{ steps.black_fix.outputs.branch_name }}
           base: main
           title: "fix: [auto-format] Black code formatting"
           body: |
-            🖌️ This pull request applies automatic code formatting using [Black](https://github.com/psf/black).
-            Please review the changes and merge if all looks good. 🤖
+            🖌️ Automated code formatting using [Black](https://github.com/psf/black)
+            
+            Applied to ${{ steps.black_fix.outputs.files_count }} files
           force-create: true
