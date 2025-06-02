@@ -26,7 +26,10 @@ try:
     else:
         import readline  # type: ignore
 except ImportError:
-    print("Readline module could not be loaded. REPL history and completion may be limited.", file=sys.stderr)
+    print(
+        "Readline module could not be loaded. REPL history and completion may be limited.",
+        file=sys.stderr,
+    )
 
 from .errors import ArslaError, ArslaRuntimeError
 from .interpreter import Interpreter
@@ -100,7 +103,7 @@ def run_file(path: str, debug: bool, show_stack: bool):
     Raises:
       ArslaError: If an error occurs during program execution.
     """
-    code = Path(path).read_text(encoding='utf-8')
+    code = Path(path).read_text(encoding="utf-8")
 
     if debug:
         console.print(f"[bold cyan]Tokens:[/] {tokenize(code)}")

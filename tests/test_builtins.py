@@ -228,13 +228,19 @@ def test_factorial():
     with pytest.raises(ArslaRuntimeError, match="Factorial needs operand"):
         factorial([])
 
-    with pytest.raises(ArslaRuntimeError, match="Factorial requires non-negative integers"):
+    with pytest.raises(
+        ArslaRuntimeError, match="Factorial requires non-negative integers"
+    ):
         factorial([-1])
 
-    with pytest.raises(ArslaRuntimeError, match="Factorial requires non-negative integers"):
+    with pytest.raises(
+        ArslaRuntimeError, match="Factorial requires non-negative integers"
+    ):
         factorial([1.5])
 
-    with pytest.raises(ArslaRuntimeError, match="Factorial requires non-negative integers"):
+    with pytest.raises(
+        ArslaRuntimeError, match="Factorial requires non-negative integers"
+    ):
         factorial(["a"])
 
 
