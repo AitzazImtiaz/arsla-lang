@@ -23,7 +23,7 @@ jobs:
         run: pip install docstring-generator
 
       - name: Run docstring-generator script
-        run: python add_docstrings.py
+        run: python docstring.py
 
       - name: Commit and push changes if any
         run: |
