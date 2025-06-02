@@ -22,12 +22,11 @@ jobs:
       - name: Install docstring-generator
         run: pip install docstring-generator
 
-      - name: Run docstring-generator auto docstring insertion
-        run: |
-          set +e
-          docstring-gen
-          set -e
+      - name: Run docstring-generator script
+        run: python add_docstrings.py
 
+      - name: Commit and push changes if any
+        run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
