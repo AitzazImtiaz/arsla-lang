@@ -12,3 +12,4 @@ mkdocs-material
 mkdocs
 readline
 pyreadline3
+docstring_generator
