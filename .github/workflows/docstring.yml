@@ -1,9 +1,9 @@
-name: Docstring Generator (Direct Commit)
+name: Auto Docstring Generator (Direct Commit)
 
 on: push
 
 jobs:
-  docstring-gen:
+  autodocstring:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install docstring-generator
-        run: pip install docstring-generator
+      - name: Install autodocstring
+        run: pip install autodocstring
 
-      - name: Run docstring-generator CLI to add/update docstrings
+      - name: Run autodocstring to insert docstrings recursively
         run: |
           set +e
-          docstring-gen --style google --recursive
+          autodocstring ./ --recursive --style google
           set -e
 
       - name: Commit and push changes if any
