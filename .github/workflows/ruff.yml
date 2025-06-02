@@ -1,9 +1,6 @@
 name: Ruff Auto-Fix (Direct Commit)
 
-on:
-  push:
-    paths:
-      - '**/*.py'
+on: push
 
 jobs:
   lint-fix:
