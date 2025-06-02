@@ -1,10 +1,10 @@
 name: Black Auto-Format via PR
 
 on:
-  push: {}
+  push:
 
 jobs:
-  black-format:
+  black-fix:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,26 +19,26 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: Install Black
         run: pip install black
 
-      - name: Run Black and Auto-format
+      - name: Run Black and commit fixes
         id: black_fix
         run: |
           black .
           git config --global user.name "dumbog"
           git config --global user.email "dumbog@example.com"
 
-          BRANCH_NAME="auto/black-fix-${{ github.run_number }}-${{ github.run_id }}"
-          git checkout -b "$BRANCH_NAME"
+          BRANCH="auto/black-fix-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
 
           git add .
           if ! git diff --cached --quiet; then
-            git commit -m "fix: [auto-format] Python code formatted by Black 🤖"
-            git push https://x-access-token:${{ secrets.DUMBOG_PAT }}@github.com/${{ github.repository }} "$BRANCH_NAME"
-            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+            git commit -m "fix: [auto-format] Black code formatting"
+            git push --set-upstream origin "$BRANCH" --force
+            echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
             echo "changes_made=true" >> $GITHUB_OUTPUT
           else
             echo "changes_made=false" >> $GITHUB_OUTPUT
