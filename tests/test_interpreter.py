@@ -10,7 +10,6 @@ from arsla.errors import ArslaRuntimeError, ArslaStackUnderflowError
 
 class MockToken:
     """A minimal mock for the Token class from lexer.py."""
-
     def __init__(self, token_type: str, value: Any):
         self.type = token_type
         self.value = value
@@ -35,7 +34,7 @@ MOCK_BUILTINS = {
 @pytest.fixture(autouse=True)
 def mock_builtins_patch():
     """Patches BUILTINS so Interpreter uses our mocks during tests."""
-    with patch("arsla.builtins.BUILTINS", new=MOCK_BUILTINS):
+    with patch('arsla.builtins.BUILTINS', new=MOCK_BUILTINS):
         yield
 
 
@@ -82,9 +81,8 @@ def test_wrap_builtin_error_handling(interpreter_instance):
     mock_builtin_fn_with_stack = Mock(
         side_effect=ArslaRuntimeError("Another Error", [], "MOCK")
     )
-    wrapped_cmd_with_stack = interpreter_instance._wrap_builtin(
-        mock_builtin_fn_with_stack
-    )
+    wrapped_cmd_with_stack = \
+        interpreter_instance._wrap_builtin(mock_builtin_fn_with_stack)
 
     with pytest.raises(ArslaRuntimeError) as excinfo_stack:
         wrapped_cmd_with_stack()
@@ -106,9 +104,8 @@ def test_wrap_control_error_handling(interpreter_instance):
     mock_control_fn_with_stack = Mock(
         side_effect=ArslaRuntimeError("More Control Error", [], "CTL")
     )
-    wrapped_cmd_with_stack = interpreter_instance._wrap_control(
-        mock_control_fn_with_stack
-    )
+    wrapped_cmd_with_stack = \
+        interpreter_instance._wrap_control(mock_control_fn_with_stack)
 
     with pytest.raises(ArslaRuntimeError) as excinfo_stack:
         wrapped_cmd_with_stack()
@@ -124,7 +121,7 @@ def test_run_literals(interpreter_instance):
         MockToken("LIST", [1, 2]),
         5.5,
         "world",
-        [3, 4],
+        [3, 4]
     ]
     interpreter_instance.run(ast)
     assert interpreter_instance.stack == [10, "hello", [1, 2], 5.5, "world", [3, 4]]
@@ -148,14 +145,12 @@ def test_run_unknown_command(interpreter_instance):
 
 def test_run_unexpected_ast_node(interpreter_instance):
     """Test running AST with an unexpected node type."""
-
     class CustomObject:
         """A simple custom object for testing unexpected AST nodes."""
-
         # This class is intentionally minimal for testing purposes.
         # R0903 will need to be ignored for this class in .pylintrc.
         # W0107 (unnecessary-pass) is also fixed by removing 'pass'.
-        pass
+        pass  # Removed unnecessary 'pass' as per the comment's instruction
 
     ast = [CustomObject()]
     with pytest.raises(ArslaRuntimeError, match="Unexpected AST node:") as excinfo:
@@ -177,12 +172,11 @@ def test_while_loop_basic(interpreter_instance):
     """Test basic while loop execution."""
     interpreter_instance.stack = [
         2,
-        [MockToken("NUMBER", 1), MockToken("SYMBOL", "-"), MockToken("SYMBOL", "D")],
+        [MockToken("NUMBER", 1), MockToken("SYMBOL", "-"), MockToken("SYMBOL", "D")]
     ]
 
     original_execute_symbol = interpreter_instance._execute_symbol
     call_count = 0
-
     def mock_execute_symbol(sym):
         nonlocal call_count
         call_count += 1
@@ -195,7 +189,8 @@ def test_while_loop_basic(interpreter_instance):
         else:
             original_execute_symbol(sym)
 
-    with patch.object(interpreter_instance, "_execute_symbol", new=mock_execute_symbol):
+    with patch.object(interpreter_instance, '_execute_symbol',
+                      new=mock_execute_symbol):
         interpreter_instance.while_loop()
 
     assert interpreter_instance.stack == [0, 0]
@@ -205,7 +200,8 @@ def test_while_loop_basic(interpreter_instance):
 def test_while_loop_no_iterations(interpreter_instance):
     """Test while loop that does not execute."""
     interpreter_instance.stack = [0, [MockToken("NUMBER", 1)]]
-    with patch.object(interpreter_instance, "_execute_symbol") as mock_execute_symbol:
+    with patch.object(interpreter_instance, '_execute_symbol') as \
+            mock_execute_symbol:
         interpreter_instance.while_loop()
     assert interpreter_instance.stack == [0]
     mock_execute_symbol.assert_not_called()
@@ -229,8 +225,13 @@ def test_while_loop_underflow(interpreter_instance):
 
 def test_ternary_true_condition(interpreter_instance):
     """Test ternary operation with a true condition."""
-    interpreter_instance.stack = [[MockToken("NUMBER", 0)], [MockToken("NUMBER", 1)], 1]
-    with patch.object(interpreter_instance, "_execute_symbol") as mock_execute_symbol:
+    interpreter_instance.stack = [
+        [MockToken("NUMBER", 0)],
+        [MockToken("NUMBER", 1)],
+        1
+    ]
+    with patch.object(interpreter_instance, '_execute_symbol') as \
+            mock_execute_symbol:
         interpreter_instance.ternary()
     assert interpreter_instance.stack == [1]
     mock_execute_symbol.assert_not_called()
@@ -238,8 +239,13 @@ def test_ternary_true_condition(interpreter_instance):
 
 def test_ternary_false_condition(interpreter_instance):
     """Test ternary operation with a false condition."""
-    interpreter_instance.stack = [[MockToken("NUMBER", 0)], [MockToken("NUMBER", 1)], 0]
-    with patch.object(interpreter_instance, "_execute_symbol") as mock_execute_symbol:
+    interpreter_instance.stack = [
+        [MockToken("NUMBER", 0)],
+        [MockToken("NUMBER", 1)],
+        0
+    ]
+    with patch.object(interpreter_instance, '_execute_symbol') as \
+            mock_execute_symbol:
         interpreter_instance.ternary()
     assert interpreter_instance.stack == [0]
     mock_execute_symbol.assert_not_called()
@@ -255,12 +261,20 @@ def test_ternary_underflow(interpreter_instance):
 
 def test_ternary_error_no_list_for_blocks(interpreter_instance):
     """Test ternary operation where blocks are not lists."""
-    interpreter_instance.stack = ["not_a_block", [MockToken("NUMBER", 1)], 1]
+    interpreter_instance.stack = [
+        "not_a_block",
+        [MockToken("NUMBER", 1)],
+        1
+    ]
     with pytest.raises(ArslaRuntimeError, match="Expected block/list") as excinfo:
         interpreter_instance.ternary()
     assert excinfo.value.stack_state == [[MockToken("NUMBER", 1)], 1]
 
-    interpreter_instance.stack = [[MockToken("NUMBER", 0)], "not_a_block", 1]
+    interpreter_instance.stack = [
+        [MockToken("NUMBER", 0)],
+        "not_a_block",
+        1
+    ]
     with pytest.raises(ArslaRuntimeError, match="Expected block/list") as excinfo:
         interpreter_instance.ternary()
     assert excinfo.value.stack_state == [[MockToken("NUMBER", 0)], 1]
