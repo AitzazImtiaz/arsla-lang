@@ -1,0 +1,41 @@
+name: Docstring Generator (Direct Commit)
+
+on: push
+
+jobs:
+  docstring-gen:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install docstring-generator
+        run: pip install docstring-generator
+
+      - name: Run docstring-generator auto docstring insertion
+        run: |
+          set +e  # Don't fail if docstring-generator has issues
+          docstring-generator
+          set -e
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: add/update docstrings [auto]"
+            git push origin HEAD
+          else
+            echo "No changes to commit."
+          fi
