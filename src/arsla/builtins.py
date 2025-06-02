@@ -1,14 +1,14 @@
-import math
-from typing import Any, List, Union
-
-from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-
-
 """
 This module provides a collection of built-in operations for a stack-based
 language, including numeric operations, stack manipulation, and type-specific
 functions.
 """
+
+import math
+from typing import Any, List, Union
+
+from .errors import ArslaRuntimeError, ArslaStackUnderflowError
+
 
 Number = Union[int, float]
 Atom = Union[Number, str, List[Any]]
@@ -122,9 +122,7 @@ def _vector_op(a: Any, b: Any, op) -> Any:
     """
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
-            raise ArslaRuntimeError(
-                "Vector ops require equal lengths", [a, b], op.__name__
-            )
+            raise ArslaRuntimeError("Vector ops require equal lengths", [a, b], op.__name__)
         return [op(x, y) for x, y in zip(a, b)]
     if isinstance(a, list):
         return [op(x, b) for x in a]
@@ -291,9 +289,7 @@ def less_than(stack: Stack) -> None:
     try:
         stack.append(1 if b < a else 0)
     except TypeError as exc:
-        raise ArslaRuntimeError(
-            f"Can't compare {type(a)} and {type(b)}", stack, "<"
-        ) from exc
+        raise ArslaRuntimeError(f"Can't compare {type(a)} and {type(b)}", stack, "<") from exc
 
 
 def greater_than(stack: Stack) -> None:
@@ -312,9 +308,7 @@ def greater_than(stack: Stack) -> None:
     try:
         stack.append(1 if b > a else 0)
     except TypeError as exc:
-        raise ArslaRuntimeError(
-            f"Can't compare {type(a)} and {type(b)}", stack, ">"
-        ) from exc
+        raise ArslaRuntimeError(f"Can't compare {type(a)} and {type(b)}", stack, ">") from exc
 
 
 def equal(stack: Stack) -> None:
