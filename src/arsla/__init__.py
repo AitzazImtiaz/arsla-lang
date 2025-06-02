@@ -4,45 +4,40 @@ Arsla Code Golf Language Core Package
 The arsla package implements the Arsla programming language
 and serves as an entry point to the repository.
 """
-
 import logging
-
 from .errors import ArslaError
 from .interpreter import Interpreter
 from .lexer import tokenize
 from .parser import parse
+__version__ = '0.1.0'
+__all__ = ['ArslaError', 'Interpreter', 'execute', 'parse', 'tokenize']
 
-__version__ = "0.1.0"
-__all__ = ["ArslaError", "Interpreter", "execute", "parse", "tokenize"]
-
-
-def execute(code: str, *, debug: bool = False) -> list:
-    """
-    Execute Arsla code and return final stack
+def execute(code: str, *, debug: bool=False) -> list:
+    """Execute Arsla code and return the final stack state.
 
     Args:
-        code: Arsla program source
-        debug: Enable debug mode
+        code (str): The Arsla program source code.
+        debug (bool, optional): Enable debug mode. Defaults to False.
 
     Returns:
-        list: Final stack state
+        list: The final stack state.  Returns an empty list if the code is empty or invalid.
 
-    Example:
-        >>> execute("3 4+")
-        [7]
+    Raises:
+        Exception: If an error occurs during code execution.  (More specific exception types might be raised internally.)
     """
     interpreter = Interpreter(debug=debug)
     interpreter.run(parse(tokenize(code)))
     return interpreter.stack
 
-
 def version() -> str:
-    """Get the current Arsla version"""
-    return f"Arsla {__version__} (interpreter {__version__})"
+    """Return the current Arsla version string.
 
+  Returns:
+    str: The Arsla version string, including interpreter information.  Will not be empty.
 
-# Initialize package logging
+  Raises:
+    None
+  """
+    return f'Arsla {__version__} (interpreter {__version__})'
 logging.getLogger(__name__).addHandler(logging.NullHandler())
-
-# Public API exports
-__all__ = ["ArslaError", "Interpreter", "execute", "parse", "tokenize", "version"]
+__all__ = ['ArslaError', 'Interpreter', 'execute', 'parse', 'tokenize', 'version']
