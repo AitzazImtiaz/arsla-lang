@@ -22,8 +22,11 @@ jobs:
       - name: Install docstring-generator
         run: pip install docstring-generator
 
-      - name: Run docstring-generator script
-        run: python docstring.py
+      - name: Run docstring-generator CLI to add/update docstrings
+        run: |
+          set +e
+          docstring-gen --style google --recursive
+          set -e
 
       - name: Commit and push changes if any
         run: |
