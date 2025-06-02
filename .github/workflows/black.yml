@@ -1,9 +1,7 @@
 name: Black Auto-Format via PR
 
-on: 
-  push:
-    paths:
-      - '**/*.py'
+on:
+  push:    # Runs on every push regardless of file changes
 
 jobs:
   black-fix:
