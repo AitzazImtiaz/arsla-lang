@@ -22,14 +22,11 @@ from rich.console import Console
 # pyreadline3 is for Windows, standard readline for others.
 try:
     if platform.system() == "Windows":
-        import pyreadline3 as readline  # type: ignore
+        import pyreadline3 as readline  # type: ignore # pylint: disable=W0611, C0415
     else:
-        import readline  # type: ignore
+        import readline  # type: ignore # pylint: disable=W0611, C0415
 except ImportError:
-    print(
-        "Readline module could not be loaded. REPL history and completion may be limited.",
-        file=sys.stderr,
-    )
+    print("Readline module could not be loaded. REPL history and completion may be limited.", file=sys.stderr)
 
 from .errors import ArslaError, ArslaRuntimeError
 from .interpreter import Interpreter
@@ -44,7 +41,8 @@ def main():
     parser = argparse.ArgumentParser(
         prog="arsla", description="Arsla Code Golf Language Runtime"
     )
-    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
+    parser.add_argument("-d", "--debug", action="store_true",
+                        help="Enable debug mode") # C0301 fix
     subparsers = parser.add_subparsers(dest="command")
     run_parser = subparsers.add_parser("run", help="Execute an Arsla program file")
 
@@ -65,7 +63,8 @@ def main():
         return path
 
     run_parser.add_argument(
-        "file", type=ah_file, help="Arsla source file to execute (must end in .aw)"
+        "file", type=ah_file,
+        help="Arsla source file to execute (must end in .aw)" # C0301 fix
     )
     run_parser.add_argument(
         "--show-stack", action="store_true", help="Print full stack after execution"
@@ -103,7 +102,7 @@ def run_file(path: str, debug: bool, show_stack: bool):
     Raises:
       ArslaError: If an error occurs during program execution.
     """
-    code = Path(path).read_text(encoding="utf-8")
+    code = Path(path).read_text(encoding='utf-8')
 
     if debug:
         console.print(f"[bold cyan]Tokens:[/] {tokenize(code)}")
