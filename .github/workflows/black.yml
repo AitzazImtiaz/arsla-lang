@@ -1,4 +1,4 @@
-name: Black Auto-Format via PR
+name: Black Auto-Format Direct Commit
 
 on:
   push:
@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -24,38 +23,19 @@ jobs:
       - name: Install Black
         run: pip install black
 
-      - name: Run Black and commit fixes
-        id: black_fix
+      - name: Run Black and commit fixes if needed
+        env:
+          GITHUB_TOKEN: ${{ secrets.DUMBOG_PAT }}
         run: |
-          black .
           git config --global user.name "dumbog"
           git config --global user.email "dumbog@example.com"
 
-          BRANCH="auto/black-fix-${{ github.run_id }}"
-          git checkout -b "$BRANCH"
+          black .
 
           git add .
           if ! git diff --cached --quiet; then
             git commit -m "fix: [auto-format] Black code formatting"
-            git push --set-upstream origin "$BRANCH" --force
-            echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
-            echo "changes_made=true" >> $GITHUB_OUTPUT
+            git push
           else
-            echo "changes_made=false" >> $GITHUB_OUTPUT
+            echo "No formatting changes needed."
           fi
-
-      - name: Create Pull Request
-        if: steps.black_fix.outputs.changes_made == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.DUMBOG_PAT }}
-          branch: ${{ steps.black_fix.outputs.branch_name }}
-          base: main
-          title: "fix: [auto-format] Black code formatting"
-          body: |
-            🖌️ This pull request applies automatic code formatting using [Black](https://github.com/psf/black).
-
-            Please review the changes and merge if all looks good. 🤖
-          force-create: true
-          delete-branch: true
-          persist-branch: true
