@@ -1,15 +1,15 @@
-name: Hugging Face Docstring Generator (Direct Commit)
+name: Hugging Face AutoDocGen (Direct Commit)
 
 on: push
 
 jobs:
-  generate-docstrings:
+  docgen:
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     env:
-      HF_TOKEN: ${{ secrets.GEMINI }}
+      HUGGINGFACEHUB_API_TOKEN: ${{ secrets.GEMINI }}
 
     steps:
       - name: Checkout code
@@ -22,11 +22,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install huggingface_hub transformers
+      - name: Install autodocgen
+        run: pip install autodocgen
 
-      - name: Generate docstrings using Hugging Face
-        run: python scripts/generate_docstrings.py
+      - name: Run autodocgen on all Python files
+        run: |
+          autodocgen . --recursive --overwrite --model huggingface/autodoc-codegen
 
       - name: Commit and push changes if any
         run: |
@@ -36,7 +37,7 @@ jobs:
           git add .
 
           if ! git diff --cached --quiet; then
-            git commit -m "chore: add/update docstrings via Hugging Face [auto]"
+            git commit -m "chore: auto-generate docstrings using Hugging Face AutoDocGen"
             git push origin HEAD
           else
-            echo "No changes to commit."
+            echo "No docstring changes to commit."
