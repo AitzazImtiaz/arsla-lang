@@ -1,9 +1,9 @@
-name: Hugging Face AutoDocGen (Direct Commit)
+name: Hugging Face AutoDocGen
 
 on: push
 
 jobs:
-  docgen:
+  autodocstring:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,10 +22,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install autodocgen
-        run: pip install autodocgen
+      - name: Install AutoDocGen from GitHub
+        run: pip install git+https://github.com/huggingface/autodocgen.git
 
-      - name: Run autodocgen on all Python files
+      - name: Generate docstrings using Hugging Face
         run: |
           autodocgen . --recursive --overwrite --model huggingface/autodoc-codegen
 
@@ -40,4 +40,4 @@ jobs:
             git commit -m "chore: auto-generate docstrings using Hugging Face AutoDocGen"
             git push origin HEAD
           else
-            echo "No docstring changes to commit."
+            echo "No changes to commit."
