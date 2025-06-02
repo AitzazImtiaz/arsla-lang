@@ -22,11 +22,9 @@ jobs:
       - name: Install autodocstring
         run: pip install autodocstring
 
-      - name: Run autodocstring to insert docstrings recursively
+      - name: Run autodocstring on all Python files recursively
         run: |
-          set +e
-          autodocstring ./ --recursive --style google
-          set -e
+          find . -name '*.py' -exec autodocstring {} --overwrite --methods init repr \;
 
       - name: Commit and push changes if any
         run: |
