@@ -1,8 +1,8 @@
 """
 Arsla Code Golf Language Core Package
 
-The mygolf package implements the Arsla programming language - 
-a concise stack-based language for code golfing challenges.
+The arsla package implements the Arsla programming language
+and serves as an entry point to the repository.
 """
 
 __version__ = "0.1.0"
@@ -13,6 +13,7 @@ from .errors import ArslaError
 from .lexer import tokenize
 from .parser import parse
 from .interpreter import Interpreter
+
 
 def execute(code: str, *, debug: bool = False) -> list:
     """
@@ -32,6 +33,7 @@ def execute(code: str, *, debug: bool = False) -> list:
     interpreter = Interpreter(debug=debug)
     interpreter.run(parse(tokenize(code)))
     return interpreter.stack
+
 
 def version() -> str:
     """Get Arsla version information"""
