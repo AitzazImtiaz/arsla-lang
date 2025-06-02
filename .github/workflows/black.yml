@@ -1,6 +1,9 @@
 name: Black Auto-Format via PR
 
-on: push  # runs on every push to any branch
+on: 
+  push:
+    paths:
+      - '**/*.py'
 
 jobs:
   black-fix:
@@ -41,6 +44,7 @@ jobs:
             echo "changes_made=true" >> $GITHUB_OUTPUT
           else
             echo "changes_made=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Pull Request
         if: steps.black_fix.outputs.changes_made == 'true'
