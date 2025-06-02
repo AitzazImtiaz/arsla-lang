@@ -50,6 +50,7 @@ jobs:
         with:
           token: ${{ secrets.DUMBOG_PAT }}
           branch: ${{ steps.black_fix.outputs.branch_name }}
+          base: main
           title: "fix: [auto-format] Black code formatting"
           body: |
             🖌️ This pull request applies automatic code formatting using [Black](https://github.com/psf/black).
