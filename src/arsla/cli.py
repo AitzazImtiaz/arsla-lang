@@ -20,7 +20,7 @@ from rich.console import Console
 import platform
 
 try:
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         import pyreadline3 as readline
     else:
         import readline
@@ -37,35 +37,41 @@ console = Console()
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="arsla",
-        description="Arsla Code Golf Language Runtime"
+        prog="arsla", description="Arsla Code Golf Language Runtime"
     )
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
     subparsers = parser.add_subparsers(dest="command")
 
     # run
     run_parser = subparsers.add_parser("run", help="Execute an Arsla program file")
+
     # enforce .ah extension at parse-time
     def ah_file(path):
         from pathlib import Path
+
         if Path(path).suffix.lower() != ".aw":
             raise argparse.ArgumentTypeError("file must end in .aw")
         return path
+
     run_parser.add_argument(
-        "file",
-        type=ah_file,
-        help="Arsla source file to execute (must end in .aw)"
+        "file", type=ah_file, help="Arsla source file to execute (must end in .aw)"
     )
 
-    run_parser.add_argument("--show-stack", action="store_true", help="Print full stack after execution")
+    run_parser.add_argument(
+        "--show-stack", action="store_true", help="Print full stack after execution"
+    )
 
     # shell
     shell_parser = subparsers.add_parser("shell", help="Start interactive REPL")
-    shell_parser.add_argument("--debug", action="store_true", help="Enable debug in REPL")
+    shell_parser.add_argument(
+        "--debug", action="store_true", help="Enable debug in REPL"
+    )
 
     # docs
     docs_parser = subparsers.add_parser("docs", help="Open documentation in browser")
-    docs_parser.add_argument("--build", action="store_true", help="Build docs before opening")
+    docs_parser.add_argument(
+        "--build", action="store_true", help="Build docs before opening"
+    )
 
     args = parser.parse_args()
     if args.command == "run":
@@ -132,9 +138,10 @@ def open_docs(build: bool):
         )
     webbrowser.open("file://" + os.path.abspath("_build/index.html"))
 
+
 def _print_error(e: ArslaError):
     console.print(f"[purple]{e.__class__.__name__}[/purple]: {e}")
-    ctx = getattr(e, '__context__', None)
+    ctx = getattr(e, "__context__", None)
     while ctx:
         console.print(f"[purple]{ctx.__class__.__name__}[/purple]: {ctx}")
-        ctx = getattr(ctx, '__context__', None)
+        ctx = getattr(ctx, "__context__", None)

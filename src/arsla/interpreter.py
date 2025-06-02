@@ -9,6 +9,7 @@ Atom = Union[Number, str, list]
 Stack = List[Atom]
 Command = Callable[[], None]
 
+
 class Interpreter:
     def __init__(self, debug: bool = False):
         self.stack: Stack = []
@@ -21,8 +22,8 @@ class Interpreter:
         for sym, fn in BUILTINS.items():
             cmds[sym] = self._wrap_builtin(fn)
         # Bind control-flow primitives
-        cmds['W'] = self._wrap_control(self.while_loop)
-        cmds['?'] = self._wrap_control(self.ternary)
+        cmds["W"] = self._wrap_control(self.while_loop)
+        cmds["?"] = self._wrap_control(self.ternary)
         return cmds
 
     def _wrap_builtin(self, fn: Callable[[Stack], None]) -> Command:
@@ -32,6 +33,7 @@ class Interpreter:
             except ArslaRuntimeError as e:
                 e.stack_state = self.stack.copy()
                 raise
+
         return cmd
 
     def _wrap_control(self, fn: Callable[[], None]) -> Command:
@@ -41,6 +43,7 @@ class Interpreter:
             except ArslaRuntimeError as e:
                 e.stack_state = self.stack.copy()
                 raise
+
         return cmd
 
     def run(self, ast: List[Any]) -> None:
@@ -49,7 +52,7 @@ class Interpreter:
                 print(f"Node: {node!r}, Stack before: {self.stack}")
 
             # 1) Handle Token symbols
-            if isinstance(node, Token) and node.type == 'SYMBOL':
+            if isinstance(node, Token) and node.type == "SYMBOL":
                 self._execute_symbol(node.value)
 
             # 2) Handle raw string symbols (e.g., parsed R)
@@ -70,9 +73,7 @@ class Interpreter:
 
             else:
                 raise ArslaRuntimeError(
-                    f"Unexpected AST node: {node}",
-                    self.stack.copy(),
-                    'AST'
+                    f"Unexpected AST node: {node}", self.stack.copy(), "AST"
                 )
 
             if self.debug:
@@ -82,11 +83,7 @@ class Interpreter:
         if sym in self.commands:
             self.commands[sym]()
         else:
-            raise ArslaRuntimeError(
-                f"Unknown command: {sym}",
-                self.stack.copy(),
-                sym
-            )
+            raise ArslaRuntimeError(f"Unknown command: {sym}", self.stack.copy(), sym)
 
     # --- Control Flow ---
     def while_loop(self) -> None:
@@ -106,7 +103,7 @@ class Interpreter:
     # --- Stack Helpers ---
     def _pop(self) -> Atom:
         if not self.stack:
-            raise ArslaStackUnderflowError(1, 0, self.stack, '_pop')
+            raise ArslaStackUnderflowError(1, 0, self.stack, "_pop")
         return self.stack.pop()
 
     def _peek(self) -> Atom:
@@ -115,7 +112,7 @@ class Interpreter:
     def _pop_list(self) -> list:
         item = self._pop()
         if not isinstance(item, list):
-            raise ArslaRuntimeError("Expected block/list", self.stack.copy(), 'block')
+            raise ArslaRuntimeError("Expected block/list", self.stack.copy(), "block")
         return item
 
     def _is_truthy(self, val: Atom) -> bool:
