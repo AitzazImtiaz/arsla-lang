@@ -27,7 +27,7 @@ def execute(code: str, *, debug: bool = False) -> list:
         list: The final stack state.  Returns an empty list if the code is empty or invalid.
 
     Raises:
-        Exception: If an error occurs during code execution.  (More specific exception types might be raised internally.)
+        Exception: If an error occurs during code execution.
     """
     interpreter = Interpreter(debug=debug)
     interpreter.run(parse(tokenize(code)))
