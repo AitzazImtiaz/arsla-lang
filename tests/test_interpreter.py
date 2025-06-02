@@ -2,10 +2,11 @@
 
 from typing import Any  # Standard library import
 from unittest.mock import Mock, patch  # Standard library import
+
 import pytest  # Third-party import
 
-from arsla.interpreter import Interpreter
 from arsla.errors import ArslaRuntimeError, ArslaStackUnderflowError
+from arsla.interpreter import Interpreter
 
 
 class MockToken:
