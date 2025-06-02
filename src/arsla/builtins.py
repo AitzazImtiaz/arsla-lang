@@ -9,16 +9,13 @@ Stack = List[Atom]
 
 
 def duplicate(stack: Stack) -> None:
-    """Duplicate the top element of a stack.
+    """Duplicates the top element of a stack.
 
     Args:
-      stack: The stack to operate on.  Must not be empty.
+        stack: The stack to operate on.
 
     Raises:
-      ArslaRuntimeError: If the stack is empty.
-
-    Returns:
-      None. Modifies the stack in place.
+        ArslaRuntimeError: If the stack is empty.
     """
     if not stack:
         raise ArslaRuntimeError("Cannot duplicate empty stack")
@@ -26,7 +23,14 @@ def duplicate(stack: Stack) -> None:
 
 
 def swap(stack: Stack) -> None:
-    """S: Swap top two elements"""
+    """Swaps the top two elements of a stack.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the stack contains fewer than two elements.
+    """
     if len(stack) < 2:
         raise ArslaRuntimeError("Need ≥2 elements to swap")
     a, b = (stack.pop(), stack.pop())
@@ -34,18 +38,42 @@ def swap(stack: Stack) -> None:
 
 
 def pop_top(stack: Stack) -> None:
-    """$: Remove top element"""
+    """Removes the top element from a stack.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the stack is empty.
+    """
     if not stack:
         raise ArslaRuntimeError("Cannot pop empty stack")
     stack.pop()
 
 
 def clear_stack(stack: Stack) -> None:
-    """C: Clear the entire stack"""
+    """Clears all elements from a stack.
+
+    Args:
+        stack: The stack to clear.
+    """
     stack.clear()
 
 
-def _numeric_op(stack, op, operation_name=None):
+def _numeric_op(stack: Stack, op, operation_name: str = None) -> None:
+    """Performs a numeric operation on the top two elements of the stack.
+
+    Args:
+        stack: The stack to operate on.
+        op: The operation to perform (e.g., `operator.add`, `operator.sub`).
+        operation_name: An optional string representing the name of the operation,
+            used in error messages. Defaults to the name of the `op` function.
+
+    Raises:
+        ArslaRuntimeError: If the stack has fewer than two elements, if operands
+            are of invalid types, or if the operation is unsupported for the
+            given types.
+    """
     if len(stack) < 2:
         state = stack.copy()
         operation = operation_name or op.__name__
@@ -64,8 +92,25 @@ def _numeric_op(stack, op, operation_name=None):
             raise ArslaRuntimeError(f"Unsupported types: {type(a)} and {type(b)}")
 
 
-def _vector_op(a, b, op):
-    """Handle vectorized operations"""
+def _vector_op(a: Any, b: Any, op) -> Any:
+    """Handles vectorized operations for lists and numbers.
+
+    If both `a` and `b` are lists, they must have equal lengths.
+    If one is a list and the other is a number, the operation is applied
+    element-wise to the list with the number.
+
+    Args:
+        a: The first operand, which can be a number or a list of numbers.
+        b: The second operand, which can be a number or a list of numbers.
+        op: The operation to apply (e.g., `lambda x, y: x + y`).
+
+    Returns:
+        The result of the vectorized operation. This will be a list if either
+        `a` or `b` was a list, otherwise it will be a number.
+
+    Raises:
+        ArslaRuntimeError: If both `a` and `b` are lists but have different lengths.
+    """
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             raise ArslaRuntimeError("Vector ops require equal lengths")
@@ -78,7 +123,20 @@ def _vector_op(a, b, op):
 
 
 def add(stack: Stack) -> None:
-    """+: Addition or concatenation"""
+    """Performs addition or concatenation on the top two elements of the stack.
+
+    Supports:
+    * Numeric addition (int, float).
+    * String concatenation.
+    * Vectorized addition if one or both operands are lists of numbers.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the operation fails due to type mismatches or other
+            errors during addition/concatenation.
+    """
     try:
         b = stack.pop()
         a = stack.pop()
@@ -91,12 +149,34 @@ def add(stack: Stack) -> None:
 
 
 def sub(stack: Stack) -> None:
-    """-: Subtraction"""
+    """Performs subtraction on the top two numeric elements of the stack.
+
+    Supports:
+    * Numeric subtraction (int, float).
+    * Vectorized subtraction if one or both operands are lists of numbers.
+
+    Args:
+        stack: The stack to operate on.
+    """
     _numeric_op(stack, lambda a, b: a - b)
 
 
 def mul(stack: Stack) -> None:
-    """*: Multiplication"""
+    """Performs multiplication on the top two elements of the stack.
+
+    Supports:
+    * Numeric multiplication (int, float).
+    * String repetition (e.g., "abc" * 3).
+    * List repetition (e.g., [1, 2] * 3).
+    * Vectorized multiplication if one or both operands are lists of numbers.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the operation fails due to type mismatches or other
+            errors during multiplication.
+    """
     try:
         b = stack.pop()
         a = stack.pop()
@@ -112,7 +192,19 @@ def mul(stack: Stack) -> None:
         raise ArslaRuntimeError(f"Multiply failed: {e!s}")
 
 
-def div(stack):
+def div(stack: Stack) -> None:
+    """Performs division on the top two numeric elements of the stack.
+
+    Supports:
+    * Numeric division (int, float).
+    * Vectorized division if one or both operands are lists of numbers.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If division by zero is attempted.
+    """
 
     def safe_div(a, b, stack_state, operation):
         if b == 0:
@@ -125,17 +217,45 @@ def div(stack):
 
 
 def mod(stack: Stack) -> None:
-    """%: Modulo"""
+    """Performs the modulo operation on the top two numeric elements of the stack.
+
+    Supports:
+    * Numeric modulo (int, float).
+    * Vectorized modulo if one or both operands are lists of numbers.
+
+    Args:
+        stack: The stack to operate on.
+    """
     _numeric_op(stack, lambda a, b: a % b)
 
 
 def power(stack: Stack) -> None:
-    """^: Exponentiation"""
+    """Performs exponentiation on the top two numeric elements of the stack.
+
+    The second-to-top element is raised to the power of the top element.
+
+    Supports:
+    * Numeric exponentiation (int, float).
+    * Vectorized exponentiation if one or both operands are lists of numbers.
+
+    Args:
+        stack: The stack to operate on.
+    """
     _numeric_op(stack, lambda a, b: a**b)
 
 
 def factorial(stack: Stack) -> None:
-    """!: Factorial"""
+    """Calculates the factorial of the top element of the stack.
+
+    The top element must be a non-negative integer.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the stack is empty, or if the top element is not
+            a non-negative integer.
+    """
     if not stack:
         raise ArslaRuntimeError("Factorial needs operand")
     n = stack.pop()
@@ -145,7 +265,17 @@ def factorial(stack: Stack) -> None:
 
 
 def less_than(stack: Stack) -> None:
-    """<: Less than (pushes 1/0)"""
+    """Compares the top two elements of the stack for less than.
+
+    Pushes 1 to the stack if the second-to-top element is less than the top element,
+    otherwise pushes 0.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the operands cannot be compared.
+    """
     a, b = (stack.pop(), stack.pop())
     try:
         stack.append(1 if b < a else 0)
@@ -154,7 +284,17 @@ def less_than(stack: Stack) -> None:
 
 
 def greater_than(stack: Stack) -> None:
-    """>: Greater than (pushes 1/0)"""
+    """Compares the top two elements of the stack for greater than.
+
+    Pushes 1 to the stack if the second-to-top element is greater than the top element,
+    otherwise pushes 0.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the operands cannot be compared.
+    """
     a, b = (stack.pop(), stack.pop())
     try:
         stack.append(1 if b > a else 0)
@@ -163,15 +303,31 @@ def greater_than(stack: Stack) -> None:
 
 
 def equal(stack: Stack) -> None:
-    """=: Equality check"""
+    """Compares the top two elements of the stack for equality.
+
+    Pushes 1 to the stack if the top two elements are equal, otherwise pushes 0.
+
+    Args:
+        stack: The stack to operate on.
+    """
     a, b = (stack.pop(), stack.pop())
     stack.append(1 if a == b else 0)
 
 
 def next_prime(stack: Stack) -> None:
-    """P: Next prime after n"""
+    """Finds the next prime number greater than the top element of the stack.
+
+    The top element must be a numeric type.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the stack is empty or if the top element is not numeric.
+    """
 
     def is_prime(n):
+        """Checks if a number is prime."""
         if n < 2:
             return False
         for i in range(2, int(math.sqrt(n)) + 1):
@@ -193,7 +349,17 @@ def next_prime(stack: Stack) -> None:
 
 
 def reverse(stack: Stack) -> None:
-    """R: Reverse string/array (top-of-stack element)."""
+    """Reverses the top element of the stack.
+
+    If the top element is a list, it reverses the list in place.
+    If the top element is a string or can be converted to a string, it reverses the string.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaRuntimeError: If the stack is empty.
+    """
     if not stack:
         raise ArslaRuntimeError("Nothing to reverse")
     item = stack.pop()
@@ -205,7 +371,14 @@ def reverse(stack: Stack) -> None:
 
 
 def print_top(stack: Stack) -> None:
-    """p: Print and pop the top element"""
+    """Prints and pops the top element of the stack.
+
+    Args:
+        stack: The stack to operate on.
+
+    Raises:
+        ArslaStackUnderflowError: If the stack is empty.
+    """
     if not stack:
         raise ArslaStackUnderflowError(1, 0, stack, "p")
     print(stack.pop())
