@@ -98,7 +98,9 @@ def test_add():
     assert stack == [[3, 4]]
 
     # Error handling
-    with pytest.raises(ArslaRuntimeError, match="Need ≥2 elements for operation|Add failed"):
+    with pytest.raises(
+        ArslaRuntimeError, match="Need ≥2 elements for operation|Add failed"
+    ):
         add([1])  # Not enough operands
 
     with pytest.raises(ArslaRuntimeError, match="Unsupported types|Add failed"):
@@ -163,7 +165,9 @@ def test_mul():
     assert stack == [[3, 6]]
 
     # Error handling
-    with pytest.raises(ArslaRuntimeError, match="Need ≥2 elements for operation|Multiply failed"):
+    with pytest.raises(
+        ArslaRuntimeError, match="Need ≥2 elements for operation|Multiply failed"
+    ):
         mul([1])
 
     with pytest.raises(ArslaRuntimeError, match="Multiply failed"):
