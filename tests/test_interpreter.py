@@ -1,8 +1,10 @@
-import pytest
 from unittest.mock import Mock, patch
 
-from arsla.interpreter import Interpreter
+import pytest
+
 from arsla.errors import ArslaRuntimeError, ArslaStackUnderflowError
+from arsla.interpreter import Interpreter
+
 
 # --- Mocking external dependencies ---
 class MockToken:
