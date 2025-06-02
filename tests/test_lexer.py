@@ -1,6 +1,6 @@
 import pytest
-from arsla.lexer import tokenize, ArslaLexerError
-from arsla.lexer import Token
+
+from arsla.lexer import ArslaLexerError, Token, tokenize
 
 
 def test_basic_tokens():

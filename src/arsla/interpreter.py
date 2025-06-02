@@ -1,8 +1,8 @@
-import math
-from typing import Any, List, Union, Callable, Dict
-from .lexer import Token
-from .errors import ArslaRuntimeError, ArslaStackUnderflowError
+from typing import Any, Callable, Dict, List, Union
+
 from .builtins import BUILTINS
+from .errors import ArslaRuntimeError, ArslaStackUnderflowError
+from .lexer import Token
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]

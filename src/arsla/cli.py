@@ -10,14 +10,15 @@ Features:
 - Rich terminal output
 """
 
-import os
 import argparse
+import os
+import platform
+import subprocess
 import sys
 import webbrowser
 from pathlib import Path
-import subprocess
+
 from rich.console import Console
-import platform
 
 try:
     if platform.system() == "Windows":
@@ -27,10 +28,10 @@ try:
 except ImportError as e:
     print("Readline module could not be loaded:", e)
 
-from .lexer import tokenize, ArslaLexerError
-from .parser import parse, ArslaParserError
-from .interpreter import Interpreter
 from .errors import ArslaError, ArslaRuntimeError
+from .interpreter import Interpreter
+from .lexer import ArslaLexerError, tokenize
+from .parser import ArslaParserError, parse
 
 console = Console()
 

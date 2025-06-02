@@ -1,5 +1,6 @@
 import math
-from typing import List, Union, Any
+from typing import Any, List, Union
+
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
 
 Number = Union[int, float]
@@ -88,7 +89,7 @@ def add(stack: Stack) -> None:
         else:
             stack.append(_vector_op(a, b, lambda x, y: x + y))
     except (TypeError, IndexError) as e:
-        raise ArslaRuntimeError(f"Add failed: {str(e)}")
+        raise ArslaRuntimeError(f"Add failed: {e!s}")
 
 
 def sub(stack: Stack) -> None:
@@ -111,7 +112,7 @@ def mul(stack: Stack) -> None:
         else:
             stack.append(_vector_op(a, b, lambda x, y: x * y))
     except (TypeError, IndexError) as e:
-        raise ArslaRuntimeError(f"Multiply failed: {str(e)}")
+        raise ArslaRuntimeError(f"Multiply failed: {e!s}")
 
 
 def div(stack):

@@ -1,5 +1,6 @@
 import pytest
-from arsla import execute, Interpreter
+
+from arsla import execute
 
 
 def test_hello_world():

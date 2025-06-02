@@ -1,6 +1,7 @@
 import pytest
-from arsla.parser import parse, AthenaParserError
-from arsla.lexer import tokenize, Token
+
+from arsla.lexer import Token
+from arsla.parser import AthenaParserError, parse
 
 
 def test_nested_blocks():

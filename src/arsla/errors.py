@@ -13,7 +13,8 @@ Base: ArslaError
     └── ArslaBlockError
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from .lexer import Token
 
 

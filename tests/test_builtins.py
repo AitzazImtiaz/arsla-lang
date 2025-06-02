@@ -1,4 +1,5 @@
 import pytest
+
 from arsla.builtins import BUILTINS
 from arsla.errors import ArslaRuntimeError
 

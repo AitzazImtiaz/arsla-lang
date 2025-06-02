@@ -5,9 +5,10 @@ Converts token streams into executable abstract syntax trees (ASTs)
 with proper value resolution for literals and blocks.
 """
 
-from typing import List, Any
-from .lexer import Token
+from typing import Any, List
+
 from .errors import ArslaParserError
+from .lexer import Token
 
 
 def parse(tokens: List[Token]) -> List[Any]:

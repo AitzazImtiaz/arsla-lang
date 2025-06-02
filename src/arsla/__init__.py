@@ -5,14 +5,15 @@ The arsla package implements the Arsla programming language
 and serves as an entry point to the repository.
 """
 
-from .errors import ArslaError
-from .lexer import tokenize
-from .parser import parse
-from .interpreter import Interpreter
 import logging
 
+from .errors import ArslaError
+from .interpreter import Interpreter
+from .lexer import tokenize
+from .parser import parse
+
 __version__ = "0.1.0"
-__all__ = ["execute", "Interpreter", "parse", "tokenize", "ArslaError"]
+__all__ = ["ArslaError", "Interpreter", "execute", "parse", "tokenize"]
 
 
 def execute(code: str, *, debug: bool = False) -> list:

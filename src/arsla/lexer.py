@@ -1,6 +1,6 @@
+import importlib.resources
 import re
 from collections import namedtuple
-import importlib.resources
 
 # Token definition
 Token = namedtuple("Token", ["type", "value"])
@@ -21,7 +21,7 @@ def _load_symbols(filename="symbols.txt"):
         data = importlib.resources.read_text(__package__, filename)
     except (FileNotFoundError, ModuleNotFoundError):
         # Fallback to direct file read in current directory
-        with open(filename, "r", encoding="utf-8") as f:
+        with open(filename, encoding="utf-8") as f:
             data = f.read()
     # Split on whitespace or newlines
     symbols = set(data.strip().split())
