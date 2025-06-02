@@ -8,6 +8,9 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
