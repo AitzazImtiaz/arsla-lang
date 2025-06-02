@@ -1,3 +1,4 @@
 [MESSAGES CONTROL]
 disable=
-    W4902
+    W4902,
+    C1803
