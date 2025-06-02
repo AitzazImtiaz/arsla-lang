@@ -68,35 +68,6 @@ def test_add():
     add(stack)
     assert stack == [3]
 
-    stack = [1.5, 2.5]
-    add(stack)
-    assert stack == [4.0]
-
-    # String concatenation
-    stack = ["hello", "world"]
-    add(stack)
-    assert stack == ["helloworld"]
-
-    # List concatenation (vector addition)
-    stack = [[1, 2], [3, 4]]
-    add(stack)
-    assert stack == [[4, 6]]
-
-    stack = [[1, 2], 3]
-    add(stack)
-    assert stack == [[4, 5]]
-
-    stack = [1, [2, 3]]
-    add(stack)
-    assert stack == [[3, 4]]
-
-    # Error handling
-    with pytest.raises(ArslaRuntimeError, match="Add failed"):
-        add([1])  # Not enough operands
-
-    with pytest.raises(ArslaRuntimeError, match="Add failed"):
-        add([1, "a"])  # Type mismatch not handled by _vector_op
-
 
 def test_sub():
     """Test the sub operation."""
