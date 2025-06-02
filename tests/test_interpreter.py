@@ -2,11 +2,10 @@
 
 from typing import Any  # Standard library import
 from unittest.mock import Mock, patch  # Standard library import
-
 import pytest  # Third-party import
 
-from arsla.errors import ArslaRuntimeError, ArslaStackUnderflowError
 from arsla.interpreter import Interpreter
+from arsla.errors import ArslaRuntimeError, ArslaStackUnderflowError
 
 
 class MockToken:
@@ -149,9 +148,8 @@ def test_run_unexpected_ast_node(interpreter_instance):
     class CustomObject:
         """A simple custom object for testing unexpected AST nodes."""
         # This class is intentionally minimal for testing purposes.
-        # R0903 will need to be ignored for this class in .pylintrc.
-        # W0107 (unnecessary-pass) is also fixed by removing 'pass'.
-        pass  # Removed unnecessary 'pass' as per the comment's instruction
+        # R0903 (too-few-public-methods) is ignored for this class.
+        pass
 
     ast = [CustomObject()]
     with pytest.raises(ArslaRuntimeError, match="Unexpected AST node:") as excinfo:
