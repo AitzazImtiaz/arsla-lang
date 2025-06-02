@@ -24,8 +24,8 @@ jobs:
 
       - name: Run docstring-generator auto docstring insertion
         run: |
-          set +e  # Don't fail if docstring-generator has issues
-          docstring-generator
+          set +e
+          docstring-gen
           set -e
 
           git config --global user.name "github-actions[bot]"
