@@ -5,27 +5,27 @@ The arsla package implements the Arsla programming language
 and serves as an entry point to the repository.
 """
 
-__version__ = "0.1.0"
-__all__ = ["execute", "Interpreter", "parse", "tokenize", "ArslaError"]
-
-# Renamed internal references from mygolf to arsla
 from .errors import ArslaError
 from .lexer import tokenize
 from .parser import parse
 from .interpreter import Interpreter
+import logging
+
+__version__ = "0.1.0"
+__all__ = ["execute", "Interpreter", "parse", "tokenize", "ArslaError"]
 
 
 def execute(code: str, *, debug: bool = False) -> list:
     """
     Execute Arsla code and return final stack
-    
+
     Args:
         code: Arsla program source
         debug: Enable debug mode
-    
+
     Returns:
         list: Final stack state
-    
+
     Example:
         >>> execute("3 4+")
         [7]
@@ -36,11 +36,10 @@ def execute(code: str, *, debug: bool = False) -> list:
 
 
 def version() -> str:
-    """Get Arsla version information"""
+    """Get the current Arsla version"""
     return f"Arsla {__version__} (interpreter {__version__})"
 
 # Initialize package logging
-import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # Public API exports
