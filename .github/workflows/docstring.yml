@@ -9,7 +9,7 @@ jobs:
       contents: write
 
     env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI }}
 
     steps:
       - name: Checkout code
