@@ -14,8 +14,6 @@ Token = namedtuple("Token", ["type", "value"])
 class ArslaLexerError(Exception):
     """Raised for lexing errors in Arsla code."""
 
-    pass
-
 
 def _load_symbols(filename="symbols.txt"):
     """Loads valid symbol characters from an external file.
@@ -141,7 +139,9 @@ def _tokenize_string(code: str, pos: int) -> tuple[Token, int]:
             str_chars.append(char)
         pos += 1
 
-    raise ArslaLexerError(f"Unterminated string starting at position {start_pos}")
+    raise ArslaLexerError(
+        f"Unterminated string starting at position {start_pos}"
+    )
 
 
 def _tokenize_number(code: str, pos: int) -> tuple[Token, int]:
