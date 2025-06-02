@@ -1,5 +1,4 @@
-"""
-Arsla Code Golf Language CLI Interface
+"""Arsla Code Golf Language CLI Interface
 
 Features:
 - File execution
@@ -19,13 +18,16 @@ from pathlib import Path
 
 from rich.console import Console
 
+# Attempt to import readline for better REPL experience.
+# pyreadline3 is for Windows, standard readline for others.
 try:
     if platform.system() == "Windows":
-        import pyreadline3 as readline
+        import pyreadline3 as readline  # type: ignore
     else:
-        import readline
-except ImportError as e:
-    print("Readline module could not be loaded:", e)
+        import readline  # type: ignore
+except ImportError:
+    print("Readline module could not be loaded. REPL history and completion may be limited.", file=sys.stderr)
+
 from .errors import ArslaError, ArslaRuntimeError
 from .interpreter import Interpreter
 from .lexer import ArslaLexerError, tokenize
@@ -35,17 +37,7 @@ console = Console()
 
 
 def main():
-    """Validates and parses command-line arguments for an Arsla program.
-
-    Args:
-      path (str): The file path to validate.  Must end with ".aw".
-
-    Returns:
-      str: The validated file path if the extension is correct.
-
-    Raises:
-      argparse.ArgumentTypeError: If the file does not end with ".aw".
-    """
+    """Validates and parses command-line arguments for an Arsla program."""
     parser = argparse.ArgumentParser(
         prog="arsla", description="Arsla Code Golf Language Runtime"
     )
@@ -53,20 +45,18 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
     run_parser = subparsers.add_parser("run", help="Execute an Arsla program file")
 
-    def ah_file(path):
+    def ah_file(path: str) -> str:
         """Validate and return a file path ending in '.aw'.
 
         Args:
-          path: The file path to validate.  Must be a string.
+            path: The file path to validate. Must be a string.
 
         Returns:
-          The validated file path (string) if it ends with '.aw'.
+            The validated file path (string) if it ends with '.aw'.
 
         Raises:
-          argparse.ArgumentTypeError: If the file path does not end in '.aw'.
+            argparse.ArgumentTypeError: If the file path does not end in '.aw'.
         """
-        from pathlib import Path
-
         if Path(path).suffix.lower() != ".aw":
             raise argparse.ArgumentTypeError("file must end in .aw")
         return path
@@ -101,22 +91,24 @@ def run_file(path: str, debug: bool, show_stack: bool):
 
     Args:
       path: Path to the program file (str). Must be a readable file.
-      debug: Enable debug mode (bool).  If True, prints tokens and AST.
+      debug: Enable debug mode (bool). If True, prints tokens and AST.
       show_stack: Show the interpreter stack even if the program completes successfully (bool).
 
     Returns:
-      A list representing the program's result.  Returns an empty list if the program produces no output.
+      A list representing the program's result. Returns an empty list if the program produces no output.
 
     Raises:
       ArslaError: If an error occurs during program execution.
     """
-    code = Path(path).read_text()
+    code = Path(path).read_text(encoding='utf-8')
+
     if debug:
         console.print(f"[bold cyan]Tokens:[/] {tokenize(code)}")
         console.print(f"[bold cyan]AST:[/] {parse(tokenize(code))}")
     try:
-        result = Interpreter(debug=debug).run(parse(tokenize(code))) or []
-        stack = Interpreter(debug=debug).stack if show_stack else result
+        interpreter_instance = Interpreter(debug=debug)
+        result = interpreter_instance.run(parse(tokenize(code))) or []
+        stack = interpreter_instance.stack if show_stack else result
         console.print(f"[blue]Stack:[/] {stack}")
     except ArslaError as e:
         _print_error(e)
@@ -169,7 +161,7 @@ def open_docs(build: bool):
     """Opens the documentation in a web browser.
 
     Args:
-      build: Whether to build the documentation before opening (bool).  True to build.
+      build: Whether to build the documentation before opening (bool). True to build.
 
     Returns:
       None.
@@ -190,3 +182,7 @@ def _print_error(e: ArslaError):
     while ctx:
         console.print(f"[purple]{ctx.__class__.__name__}[/purple]: {ctx}")
         ctx = getattr(ctx, "__context__", None)
+
+
+if __name__ == "__main__":
+    main()
