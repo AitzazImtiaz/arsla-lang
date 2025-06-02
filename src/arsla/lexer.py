@@ -1,6 +1,7 @@
 import importlib.resources
 import re
 from collections import namedtuple
+
 Token = namedtuple('Token', ['type', 'value'])
 
 class ArslaLexerError(Exception):

@@ -15,7 +15,9 @@ import subprocess
 import sys
 import webbrowser
 from pathlib import Path
+
 from rich.console import Console
+
 try:
     if platform.system() == 'Windows':
         import pyreadline3 as readline
@@ -27,6 +29,7 @@ from .errors import ArslaError, ArslaRuntimeError
 from .interpreter import Interpreter
 from .lexer import ArslaLexerError, tokenize
 from .parser import ArslaParserError, parse
+
 console = Console()
 
 def main():

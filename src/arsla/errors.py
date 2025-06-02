@@ -13,7 +13,9 @@ Base: ArslaError
     └── ArslaBlockError
 """
 from typing import Any, Dict, Optional
+
 from .lexer import Token
+
 
 class ArslaError(Exception):
     """Base exception for all Arsla language errors."""

@@ -1,5 +1,7 @@
 import pytest
+
 from arsla.lexer import ArslaLexerError, Token, tokenize
+
 
 def test_basic_tokens():
     code = '3 4+ "abc"[D]'

@@ -1,6 +1,8 @@
 import pytest
+
 from arsla.lexer import Token
 from arsla.parser import AthenaParserError, parse
+
 
 def test_nested_blocks():
     tokens = [Token('BLOCK_START', '['), Token('SYMBOL', 'D'), Token('BLOCK_START', '['), Token('SYMBOL', '+'), Token('BLOCK_END', ']'), Token('BLOCK_END', ']')]

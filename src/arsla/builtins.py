@@ -1,6 +1,8 @@
 import math
 from typing import Any, List, Union
+
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
+
 Number = Union[int, float]
 Atom = Union[Number, str, List[Any]]
 Stack = List[Atom]

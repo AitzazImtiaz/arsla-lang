@@ -1,5 +1,7 @@
 import pytest
+
 from arsla import execute
+
 
 def test_hello_world():
     stack = execute('"Hello, World!"')
