@@ -3,6 +3,13 @@ from typing import Any, List, Union
 
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
 
+
+"""
+This module provides a collection of built-in operations for a stack-based
+language, including numeric operations, stack manipulation, and type-specific
+functions.
+"""
+
 Number = Union[int, float]
 Atom = Union[Number, str, List[Any]]
 Stack = List[Atom]
@@ -18,7 +25,7 @@ def duplicate(stack: Stack) -> None:
         ArslaRuntimeError: If the stack is empty.
     """
     if not stack:
-        raise ArslaRuntimeError("Cannot duplicate empty stack")
+        raise ArslaRuntimeError("Cannot duplicate empty stack", stack, "D")
     stack.append(stack[-1])
 
 
@@ -32,7 +39,7 @@ def swap(stack: Stack) -> None:
         ArslaRuntimeError: If the stack contains fewer than two elements.
     """
     if len(stack) < 2:
-        raise ArslaRuntimeError("Need ≥2 elements to swap")
+        raise ArslaRuntimeError("Need ≥2 elements to swap", stack, "S")
     a, b = (stack.pop(), stack.pop())
     stack.extend([a, b])
 
@@ -47,7 +54,7 @@ def pop_top(stack: Stack) -> None:
         ArslaRuntimeError: If the stack is empty.
     """
     if not stack:
-        raise ArslaRuntimeError("Cannot pop empty stack")
+        raise ArslaRuntimeError("Cannot pop empty stack", stack, "$")
     stack.pop()
 
 
@@ -87,9 +94,11 @@ def _numeric_op(stack: Stack, op, operation_name: str = None) -> None:
             if isinstance(a, list) or isinstance(b, list):
                 stack.append(_vector_op(a, b, op))
             else:
-                raise ArslaRuntimeError("Invalid operand types")
-        except TypeError:
-            raise ArslaRuntimeError(f"Unsupported types: {type(a)} and {type(b)}")
+                raise ArslaRuntimeError("Invalid operand types", stack, operation_name)
+        except TypeError as exc:
+            raise ArslaRuntimeError(
+                f"Unsupported types: {type(a)} and {type(b)}", stack, operation_name
+            ) from exc
 
 
 def _vector_op(a: Any, b: Any, op) -> Any:
@@ -113,11 +122,11 @@ def _vector_op(a: Any, b: Any, op) -> Any:
     """
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
-            raise ArslaRuntimeError("Vector ops require equal lengths")
+            raise ArslaRuntimeError("Vector ops require equal lengths", [a, b], op.__name__)
         return [op(x, y) for x, y in zip(a, b)]
-    elif isinstance(a, list):
+    if isinstance(a, list):
         return [op(x, b) for x in a]
-    elif isinstance(b, list):
+    if isinstance(b, list):
         return [op(a, y) for y in b]
     return op(a, b)
 
@@ -145,7 +154,7 @@ def add(stack: Stack) -> None:
         else:
             stack.append(_vector_op(a, b, lambda x, y: x + y))
     except (TypeError, IndexError) as e:
-        raise ArslaRuntimeError(f"Add failed: {e!s}")
+        raise ArslaRuntimeError(f"Add failed: {e!s}", stack, "+") from e
 
 
 def sub(stack: Stack) -> None:
@@ -158,7 +167,7 @@ def sub(stack: Stack) -> None:
     Args:
         stack: The stack to operate on.
     """
-    _numeric_op(stack, lambda a, b: a - b)
+    _numeric_op(stack, lambda a, b: a - b, "-")
 
 
 def mul(stack: Stack) -> None:
@@ -189,7 +198,7 @@ def mul(stack: Stack) -> None:
         else:
             stack.append(_vector_op(a, b, lambda x, y: x * y))
     except (TypeError, IndexError) as e:
-        raise ArslaRuntimeError(f"Multiply failed: {e!s}")
+        raise ArslaRuntimeError(f"Multiply failed: {e!s}", stack, "*") from e
 
 
 def div(stack: Stack) -> None:
@@ -206,10 +215,10 @@ def div(stack: Stack) -> None:
         ArslaRuntimeError: If division by zero is attempted.
     """
 
-    def safe_div(a, b, stack_state, operation):
+    def safe_div(a, b):
         if b == 0:
             raise ArslaRuntimeError(
-                "Division by zero is not allowed.", stack_state, operation
+                "Division by zero is not allowed.", stack.copy(), "/"
             )
         return a / b
 
@@ -226,7 +235,7 @@ def mod(stack: Stack) -> None:
     Args:
         stack: The stack to operate on.
     """
-    _numeric_op(stack, lambda a, b: a % b)
+    _numeric_op(stack, lambda a, b: a % b, "%")
 
 
 def power(stack: Stack) -> None:
@@ -241,7 +250,7 @@ def power(stack: Stack) -> None:
     Args:
         stack: The stack to operate on.
     """
-    _numeric_op(stack, lambda a, b: a**b)
+    _numeric_op(stack, lambda a, b: a**b, "^")
 
 
 def factorial(stack: Stack) -> None:
@@ -257,10 +266,10 @@ def factorial(stack: Stack) -> None:
             a non-negative integer.
     """
     if not stack:
-        raise ArslaRuntimeError("Factorial needs operand")
+        raise ArslaRuntimeError("Factorial needs operand", stack, "!")
     n = stack.pop()
     if not isinstance(n, int) or n < 0:
-        raise ArslaRuntimeError("Factorial requires non-negative integers")
+        raise ArslaRuntimeError("Factorial requires non-negative integers", stack, "!")
     stack.append(math.factorial(n))
 
 
@@ -279,8 +288,8 @@ def less_than(stack: Stack) -> None:
     a, b = (stack.pop(), stack.pop())
     try:
         stack.append(1 if b < a else 0)
-    except TypeError:
-        raise ArslaRuntimeError(f"Can't compare {type(a)} and {type(b)}")
+    except TypeError as exc:
+        raise ArslaRuntimeError(f"Can't compare {type(a)} and {type(b)}", stack, "<") from exc
 
 
 def greater_than(stack: Stack) -> None:
@@ -298,8 +307,8 @@ def greater_than(stack: Stack) -> None:
     a, b = (stack.pop(), stack.pop())
     try:
         stack.append(1 if b > a else 0)
-    except TypeError:
-        raise ArslaRuntimeError(f"Can't compare {type(a)} and {type(b)}")
+    except TypeError as exc:
+        raise ArslaRuntimeError(f"Can't compare {type(a)} and {type(b)}", stack, ">") from exc
 
 
 def equal(stack: Stack) -> None:
@@ -336,10 +345,10 @@ def next_prime(stack: Stack) -> None:
         return True
 
     if not stack:
-        raise ArslaRuntimeError("Need operand for prime check")
+        raise ArslaRuntimeError("Need operand for prime check", stack, "P")
     n = stack.pop()
     if not isinstance(n, (int, float)):
-        raise ArslaRuntimeError("Prime check needs numeric input")
+        raise ArslaRuntimeError("Prime check needs numeric input", stack, "P")
     candidate = math.floor(n) + 1
     while True:
         if is_prime(candidate):
@@ -361,7 +370,7 @@ def reverse(stack: Stack) -> None:
         ArslaRuntimeError: If the stack is empty.
     """
     if not stack:
-        raise ArslaRuntimeError("Nothing to reverse")
+        raise ArslaRuntimeError("Nothing to reverse", stack, "R")
     item = stack.pop()
     if isinstance(item, list):
         reversed_item = item[::-1]
