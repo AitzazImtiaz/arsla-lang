@@ -1,16 +1,15 @@
-name: Ruff Auto-Fix via PR with Detailed Comment
+name: Ruff Auto-Fix Direct Commit
 
 on:
   push:
     paths:
-      - '**.py'
+      - '**/*.py'
 
 jobs:
   lint-fix:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -26,68 +25,19 @@ jobs:
       - name: Install Ruff
         run: pip install ruff
 
-      - name: Run Ruff and Auto-fix
-        id: ruff_fix
+      - name: Run Ruff and Auto-fix, commit if needed
+        env:
+          GITHUB_TOKEN: ${{ secrets.DUMBOG_PAT }}
         run: |
-          ruff check . --fix
           git config --global user.name "dumbog"
           git config --global user.email "dumbog@example.com"
 
-          BRANCH_NAME="auto/lint-fix-${{ github.run_id }}"
-          git checkout -b "$BRANCH_NAME"
+          ruff check . --fix
 
           git add .
           if ! git diff --cached --quiet; then
-            git diff --cached > ruff.patch
             git commit -m "fix: [auto-fix] lint issues by Ruff 🤖"
-            git push https://x-access-token:${{ secrets.DUMBOG_PAT }}@github.com/${{ github.repository }} "$BRANCH_NAME"
-            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-            echo "changes_made=true" >> $GITHUB_OUTPUT
+            git push
           else
-            echo "changes_made=false" >> $GITHUB_OUTPUT
-
-      - name: Create Pull Request
-        if: steps.ruff_fix.outputs.changes_made == 'true'
-        id: create_pr
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.DUMBOG_PAT }}
-          branch: ${{ steps.ruff_fix.outputs.branch_name }}
-          title: "fix: [auto-fix] Ruff lint cleanup"
-          body: |
-            🧹 This pull request includes automatic lint fixes applied by [Ruff](https://github.com/astral-sh/ruff).
-
-            Please review the changes and merge if they look good. 🤖
-
-      - name: Comment on PR with Code Diff
-        if: steps.ruff_fix.outputs.changes_made == 'true'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.DUMBOG_PAT }}
-          script: |
-            const fs = require('fs');
-            const patch = fs.readFileSync('ruff.patch', 'utf8');
-
-            const cleaned = patch
-              .split('diff --git')
-              .slice(1)
-              .map(block => {
-                const lines = block.split('\n');
-                const fileHeader = lines.find(l => l.startsWith('+++ b/')) || '';
-                const filePath = fileHeader.replace('+++ b/', '');
-                const codeDiff = lines
-                  .filter(l => l.startsWith('+') || l.startsWith('-'))
-                  .slice(0, 50)  // limit per file
-                  .join('\n');
-                return `#### \`${filePath}\`\n\`\`\`diff\n${codeDiff}\n\`\`\``;
-              }).join('\n\n');
-
-            const prNumber = ${{ steps.create_pr.outputs.pull-request-number }};
-            const comment = `### 🛠 Auto-fix Summary\n\n**Changed Files:**\n\n${cleaned}`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: comment
-            });
+            echo "No lint fixes needed."
+          fi
