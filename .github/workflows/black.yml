@@ -1,7 +1,7 @@
 name: Black Auto-Format via PR
 
 on:
-  push:    # Runs on every push regardless of file changes
+  push:
 
 jobs:
   black-fix:
@@ -44,7 +44,7 @@ jobs:
             echo "changes_made=false" >> $GITHUB_OUTPUT
           fi
 
-       - name: Create Pull Request
+      - name: Create Pull Request
         if: steps.black_fix.outputs.changes_made == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
