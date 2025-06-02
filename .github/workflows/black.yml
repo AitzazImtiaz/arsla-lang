@@ -57,3 +57,4 @@ jobs:
 
             Please review the changes and merge if all looks good. 🤖
           force-create: true
+          delete-branch: true
