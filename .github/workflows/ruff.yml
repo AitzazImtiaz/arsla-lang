@@ -1,40 +1,21 @@
-name: Ruff Auto-Fix Direct Commit
+- name: Run Ruff and Auto-fix
+  id: ruff_fix
+  run: |
+    set +e  # ignore errors so script continues
+    ruff check . --fix
+    set -e  # restore exit-on-error
 
-on: push
+    git config --global user.name "dumbog"
+    git config --global user.email "dumbog@example.com"
 
-jobs:
-  lint-fix:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    BRANCH_NAME="auto/lint-fix-${{ github.run_id }}"
+    git checkout -b "$BRANCH_NAME"
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Ruff
-        run: pip install ruff
-
-      - name: Run Ruff and Auto-fix, commit if needed
-        env:
-          GITHUB_TOKEN: ${{ secrets.DUMBOG_PAT }}
-        run: |
-          git config --global user.name "dumbog"
-          git config --global user.email "dumbog@example.com"
-
-          ruff check . --fix
-
-          git add .
-          if ! git diff --cached --quiet; then
-            git commit -m "fix: [auto-fix] lint issues by Ruff 🤖"
-            git push
-          else
-            echo "No lint fixes needed."
-          fi
+    git add .
+    if ! git diff --cached --quiet; then
+      git commit -m "fix: [auto-fix] lint issues by Ruff 🤖"
+      git push https://x-access-token:${{ secrets.DUMBOG_PAT }}@github.com/${{ github.repository }} "$BRANCH_NAME"
+      echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+      echo "changes_made=true" >> $GITHUB_OUTPUT
+    else
+      echo "changes_made=false" >> $GITHUB_OUTPUT
