@@ -37,12 +37,18 @@ jobs:
           git add .
           if ! git diff --cached --quiet; then
             git commit -m "fix: [auto-format] Python code formatted by Black 🤖"
+            # Push using PAT and force fetch updates
             git push https://x-access-token:${{ secrets.DUMBOG_PAT }}@github.com/${{ github.repository }} "$BRANCH_NAME"
             echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
             echo "changes_made=true" >> $GITHUB_OUTPUT
           else
             echo "changes_made=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Fetch new branch explicitly
+        if: steps.black_fix.outputs.changes_made == 'true'
+        run: |
+          git fetch origin ${{ steps.black_fix.outputs.branch_name }}
 
       - name: Create Pull Request
         if: steps.black_fix.outputs.changes_made == 'true'
