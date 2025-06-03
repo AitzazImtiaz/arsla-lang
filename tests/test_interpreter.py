@@ -1,9 +1,10 @@
-import pytest
-from typing import List, Any
+from typing import Any
 
-from arsla.parser import parse, flatten_block
-from arsla.lexer import Token
+import pytest
+
 from arsla.errors import ArslaParserError
+from arsla.lexer import Token
+from arsla.parser import flatten_block, parse
 
 
 class MockToken:
