@@ -1,60 +1,61 @@
 # Project Information
 site_name: Arsla Language Documentation
 site_description: The official documentation for Arsla, a stack-based golfing language.
-site_url: https://aitzazimtiaz.github.io/arsla-lang/docs/ # IMPORTANT: Update this with your actual deployment URL (e.g., GitHub Pages URL)
+site_url: https://aitzazimtiaz.github.io/arsla-lang/docs/
 repo_url: https://github.com/aitzazimtiaz/arsla-lang
 repo_name: aitzazimtiaz/arsla-lang
-edit_uri: edit/main/docs/ # Assumes your docs are in a 'docs' folder on the 'main' branch for "Edit this page" link
+edit_uri: edit/main/docs/
 
-# Theme Configuration (using Material for MkDocs)
+# Theme Configuration (Material for MkDocs)
 theme:
   name: material
-  # Set up a beautiful purple color palette with light and dark mode toggling
   palette:
-    # Palette 1: Light mode (default)
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep purple        # Your main brand color
-      accent: purple        # A complementary accent color
-      toggle:
-        icon: material/brightness-4 # Icon for switching to dark mode
-        name: Switch to dark mode
-    # Palette 2: Dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate        # A dark scheme for night viewing
       primary: deep purple
       accent: purple
       toggle:
-        icon: material/brightness-7 # Icon for switching to light mode
+        icon: material/brightness-4
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
         name: Switch to light mode
-  # Enable useful features from the Material theme for a richer user experience
   features:
-    - navigation.tabs           # Top-level navigation as tabs
-    - navigation.sections       # Sub-sections in the side navigation
-    - navigation.top            # Scroll-to-top button
-    - navigation.indexes        # Show index.md for sections in nav
-    - navigation.expand         # Automatically expand current section
-    - search.highlight          # Highlight search results
-    - search.share              # Share search results
-    - content.tabs.link         # Direct links to content tabs
-    - content.code.copy         # Copy button for code blocks
-    - content.code.annotate     # Code annotations
-    - content.tooltips          # Tooltips for abbreviations
-  # Optional: Customize the logo icon (choose from Material Design Icons or create your own)
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - navigation.expand
+    - search.highlight
+    - search.share
+    - content.tabs.link
+    - content.code.copy
+    - content.code.annotate
+    - content.tooltips
   icon:
-    logo: material/code-tags # A generic code icon, you can find more at https://pictogrammers.com/library/mdi/
+    logo: material/code-tags
 
-# Extra Social Links (visible in the footer)
+# Extra (e.g. footer social links)
 extra:
   social:
-    - icon: fontawesome/brands/github # GitHub icon
-      link: https://github.com/aitzazimtiaz # Link to your GitHub profile or organization
+    - icon: fontawesome/brands/github
+      link: https://github.com/aitzazimtiaz
 
-# Markdown Extensions for Richer Content and Functionality
+# Markdown Extensions
 markdown_extensions:
   - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
   - pymdownx.details
-  - pymdownx.superfences # <-- The 'custom_fence' block has been completely removed from here
+  - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.highlight:
@@ -64,12 +65,6 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - attr_list
-  - md_in_html
-  - toc:
-      permalink: true
-  - def_list
-  - footnotes
   - pymdownx.mark
   - pymdownx.tilde
   - pymdownx.caret
@@ -80,20 +75,19 @@ markdown_extensions:
   - pymdownx.saneheaders
   - pymdownx.betterem
 
+# Plugins
 plugins:
   - search:
-      lang: en # Optimize search for English
-  - mkdocstrings: # --- MKDOCSTRINGS CONFIGURATION ---
+      lang: en
+  - mkdocstrings:
       handlers:
         python:
-          paths: [src] # Crucial: Tells mkdocstrings where to find your 'arsla' package
+          paths: ["src"]
           options:
-            docstring_style: google # Specifies Google-style docstrings
-            show_root_heading: true # Show the module/class/function name as the top heading
-            show_source: true       # Show a link to the source code for each documented item
-            separate_signature: true # Separate function signature from its description
-            # List the Python modules you want to document.
-            # Paths are relative to the 'paths' defined above (e.g., 'arsla.builtins' maps to 'src/arsla/builtins.py')
+            docstring_style: google
+            show_root_heading: true
+            show_source: true
+            separate_signature: true
             members:
               - arsla.builtins
               - arsla.cli
@@ -103,21 +97,21 @@ plugins:
               - arsla.parser
               - arsla
 
-# Navigation Structure (defines the order and hierarchy of your documentation pages)
+# Navigation Structure
 nav:
   - Home: index.md
   - Getting Started:
-    - Installation: getting-started/installation.md
-    - Basic Usage: getting-started/basic-usage.md
+      - Installation: getting-started/installation.md
+      - Basic Usage: getting-started/basic-usage.md
   - Language Reference:
-    - Overview: language-reference/overview.md
-    - Built-in Functions: language-reference/builtins.md
-    - Lexical Structure: language-reference/lexer.md
-    - Syntax and Parsing: language-reference/parser.md
-    - Error Handling: language-reference/errors.md
+      - Overview: language-reference/overview.md
+      - Built-in Functions: language-reference/builtins.md
+      - Lexical Structure: language-reference/lexer.md
+      - Syntax and Parsing: language-reference/parser.md
+      - Error Handling: language-reference/errors.md
   - Command Line Interface (CLI): cli.md
   - Contributing: contributing.md
   - Code of Conduct: code-of-conduct.md
   - About:
-    - Project Overview: about.md
-    - Dedication: dedication.md
+      - Project Overview: about.md
+      - Dedication: dedication.md
