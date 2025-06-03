@@ -6,10 +6,10 @@ This guide covers the fundamental concepts of using Arsla, from understanding it
 
 ## Running Arsla Code
 
-As seen in the [homepage](../index.md), you execute Arsla code by saving it in a file (e.g., `myprogram.arsla`) and running it via the `arsla` command-line tool.
+As seen in the [homepage](../index.md), you execute Arsla code by saving it in a file (e.g., `myprogram.aw`) and running it via the `arsla` command-line tool.
 
 ```bash
-arsla myprogram.arsla
+arsla myprogram.aw
 ````
 
 -----
