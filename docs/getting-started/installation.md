@@ -63,7 +63,7 @@ If you plan to contribute to Arsla or want the very latest unreleased features, 
     First, clone the Arsla GitHub repository to your local machine:
 
     ```bash
-    git clone [https://github.com/aitzazimtiaz/arsla-lang.git](https://github.com/aitzazimtiaz/arsla-lang.git)
+    git clone https://github.com/aitzazimtiaz/arsla-lang.git
     ```
 
 2.  **Navigate to the Project Directory:**
