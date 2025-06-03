@@ -13,8 +13,9 @@ of recognized symbols during testing.
 import importlib.resources
 import re
 from collections import namedtuple
+from unittest.mock import mock_open, patch
+
 import pytest
-from unittest.mock import patch, mock_open
 
 # Assuming the lexer code is in a file named 'arsla/lexer.py'
 # and 'symbols.txt' is in the same directory or accessible via package resources.
