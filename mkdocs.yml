@@ -52,37 +52,37 @@ extra:
 
 # Markdown Extensions for Richer Content and Functionality
 markdown_extensions:
-  - admonition                      # For notes, tips, warnings (e.g., !!! note "Title")
-  - pymdownx.details                # Collapsible sections
-  - pymdownx.superfences:           # Enhanced code blocks
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
       custom_fence:
-        - name: mermaid             # For Mermaid diagrams (requires extra setup for rendering)
+        - name: mermaid
           class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+          # The problematic 'format' line has been removed from here!
   - pymdownx.tabbed:
-      alternate_style: true         # Tabs for content organization
-  - pymdownx.highlight:             # Syntax highlighting
+      alternate_style: true
+  - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.arithmatex:            # LaTeX math support (requires KaTeX/MathJax setup, often via extra_javascript)
+  - pymdownx.arithmatex:
       generic: true
-  - pymdownx.emoji:                 # Emoji support
+  - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - attr_list                       # For adding custom attributes to HTML elements (e.g., {#id})
-  - md_in_html                      # Allows Markdown syntax within HTML blocks (use sparingly)
+  - attr_list
+  - md_in_html
   - toc:
-      permalink: true               # Add permalinks to headings
-  - def_list                        # Definition lists
-  - footnotes                       # Footnotes
-  - pymdownx.mark                   # ==Highlight== text
-  - pymdownx.tilde                  # ~~Strikethrough~~ text
-  - pymdownx.caret                  # ^^Superscript^^ text
-  - pymdownx.critic                 # Critic markup (for reviewing text changes)
-  - pymdownx.keys                   # Render keyboard keys <kbd>Ctrl</kbd>+<kbd>C</kbd>
-  - pymdownx.tasklist:              # Checklists
+      permalink: true
+  - def_list
+  - footnotes
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.keys
+  - pymdownx.tasklist:
       custom_checkbox: true
-  - pymdownx.saneheaders            # Consistent header parsing
-  - pymdownx.betterem               # Improved emphasis handling
+  - pymdownx.saneheaders
+  - pymdownx.betterem
 
 plugins:
   - search:
@@ -124,4 +124,4 @@ nav:
   - Code of Conduct: code-of-conduct.md
   - About:
     - Project Overview: about.md
-    - Dedication: dedication.md # Your newly added dedication page
+    - Dedication: dedication.md
