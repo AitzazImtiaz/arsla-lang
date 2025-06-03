@@ -1,3 +1,13 @@
+"""Tests for the Arsla parser and block flattening functionalities.
+
+This module contains unit tests for the `parse` function, which converts
+a sequence of tokens into an Abstract Syntax Tree (AST), and the
+`flatten_block` function, which converts an AST back into a sequence of tokens.
+
+It uses a `MockToken` class to simulate `arsla.lexer.Token` objects for
+easier test case creation without a full lexer dependency.
+"""
+
 from typing import Any
 
 import pytest
