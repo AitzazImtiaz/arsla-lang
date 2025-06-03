@@ -63,17 +63,16 @@ def flatten_block(block: List[Any]) -> List[Token]:
             tokens.append(Token("BLOCK_START", "["))
             tokens.extend(flatten_block(element))
             tokens.append(Token("BLOCK_END", "]"))
+        # IMPORTANT: if your AST for 'element' is already a Token object,
+        # you might need to handle it differently here.
+        # Assuming 'element' could be a raw value or a Token that was placed in the AST
+        elif isinstance(element, Token): # <--- Potentially needed if flatten_block is used on the primary AST
+            tokens.append(element)
         else:
-            # IMPORTANT: if your AST for 'element' is already a Token object,
-            # you might need to handle it differently here.
-            # Assuming 'element' could be a raw value or a Token that was placed in the AST
-            if isinstance(element, Token): # <--- Potentially needed if flatten_block is used on the primary AST
-                tokens.append(element)
-            else:
-                token_type = (
-                    "NUMBER"
-                    if isinstance(element, (int, float))
-                    else "STRING" if isinstance(element, str) else "SYMBOL"
-                )
-                tokens.append(Token(token_type, element))
+            token_type = (
+                "NUMBER"
+                if isinstance(element, (int, float))
+                else "STRING" if isinstance(element, str) else "SYMBOL"
+            )
+            tokens.append(Token(token_type, element))
     return tokens
