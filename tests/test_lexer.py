@@ -12,7 +12,7 @@ of recognized symbols during testing.
 import re
 from collections import namedtuple
 from unittest.mock import patch, mock_open
-import importlib.resources # Placed after standard library imports
+import importlib.resources  # Placed after standard library imports
 import pytest
 
 
@@ -103,7 +103,7 @@ def tokenize(code: str) -> list[Token]:
 
         # Access global SYMBOLS from the module.
         # This SYMBOLS will be set by the test fixture.
-        if char in globals().get('SYMBOLS', set()):
+        if char in globals().get("SYMBOLS", set()):
             tokens.append(Token("SYMBOL", char))
             pos += 1
             continue
@@ -191,6 +191,7 @@ def _tokenize_number(code: str, pos: int) -> tuple[Token, int]:
             f"Invalid number format: '{num_str}' at position {pos}"
         ) from exc
 
+
 # --- End of the lexer code ---
 
 
@@ -207,15 +208,14 @@ class TestLexer:
         of each test.
         """
         # Patch the function called by the lexer module to load symbols
-        with patch('arsla.lexer._load_symbols', return_value={'a', 'b', '+'}) as _:
+        with patch("arsla.lexer._load_symbols", return_value={"a", "b", "+"}) as _:
             # Temporarily set the global SYMBOLS in the current module's scope
             # and yield control to the test.
-            original_symbols = globals()['SYMBOLS']
-            globals()['SYMBOLS'] = {'a', 'b', '+'}
+            original_symbols = globals()["SYMBOLS"]
+            globals()["SYMBOLS"] = {"a", "b", "+"}
             yield
             # Restore the original SYMBOLS after the test
-            globals()['SYMBOLS'] = original_symbols
-
+            globals()["SYMBOLS"] = original_symbols
 
     def test_tokenize_empty_code(self):
         """Tests that an empty string returns an empty list of tokens."""
@@ -256,8 +256,8 @@ class TestLexer:
             Token("STRING", "hello\nworld"),
             Token("STRING", "tab\t"),
             Token("STRING", 'quote"'),
-            Token("STRING", 'backslash\\'),
-            Token("STRING", 'unknown\\x'), # Unknown escape sequence, keeps backslash
+            Token("STRING", "backslash\\"),
+            Token("STRING", "unknown\\x"),  # Unknown escape sequence, keeps backslash
         ]
         assert tokenize(code) == expected_tokens
 
@@ -298,9 +298,13 @@ class TestLexer:
 
     def test_tokenize_unterminated_string_error(self):
         """Tests that ArslaLexerError is raised for an unterminated string."""
-        with pytest.raises(ArslaLexerError, match="Unterminated string starting at position 0"):
+        with pytest.raises(
+            ArslaLexerError, match="Unterminated string starting at position 0"
+        ):
             tokenize('"hello')
-        with pytest.raises(ArslaLexerError, match="Unterminated string starting at position 5"):
+        with pytest.raises(
+            ArslaLexerError, match="Unterminated string starting at position 5"
+        ):
             tokenize('12345"incomplete')
 
     def test_tokenize_invalid_number_format_error(self):
@@ -310,38 +314,45 @@ class TestLexer:
         with pytest.raises(ArslaLexerError, match="Invalid number format"):
             tokenize("-.e")
         # Direct test of helper for a more specific error message check
-        with pytest.raises(ArslaLexerError, match="Invalid number format: '1.2.3' at position 0"):
+        with pytest.raises(
+            ArslaLexerError, match="Invalid number format: '1.2.3' at position 0"
+        ):
             _tokenize_number("1.2.3", 0)
-
 
     def test_tokenize_unexpected_character_error(self):
         """Tests that ArslaLexerError is raised for an unexpected character."""
-        with pytest.raises(ArslaLexerError, match="Unexpected character '#' at position 0"):
+        with pytest.raises(
+            ArslaLexerError, match="Unexpected character '#' at position 0"
+        ):
             tokenize("#")
-        with pytest.raises(ArslaLexerError, match="Unexpected character '!' at position 4"):
+        with pytest.raises(
+            ArslaLexerError, match="Unexpected character '!' at position 4"
+        ):
             tokenize("abc !")
 
-    @patch('arsla.lexer.importlib.resources.read_text')
+    @patch("arsla.lexer.importlib.resources.read_text")
     def test_load_symbols_from_package(self, mock_read_text):
         """Tests that _load_symbols loads from package resources."""
         mock_read_text.return_value = "x y z"
         # Temporarily mock the SYMBOLS global to isolate this test
         # We need to temporarily remove the fixture's effect to test _load_symbols directly
-        with patch.dict(globals(), {'SYMBOLS': None}):
+        with patch.dict(globals(), {"SYMBOLS": None}):
             symbols = _load_symbols("test_symbols.txt")
-            assert symbols == {'x', 'y', 'z'}
+            assert symbols == {"x", "y", "z"}
             mock_read_text.assert_called_once_with("arsla", "test_symbols.txt")
 
-    @patch('builtins.open', new_callable=mock_open, read_data="p q r")
-    @patch('arsla.lexer.importlib.resources.read_text', side_effect=ModuleNotFoundError)
+    @patch("builtins.open", new_callable=mock_open, read_data="p q r")
+    @patch("arsla.lexer.importlib.resources.read_text", side_effect=ModuleNotFoundError)
     def test_load_symbols_from_file_fallback(self, mock_read_text, mock_file_open):
         """Tests that _load_symbols falls back to file if package resource fails."""
         # Temporarily mock the SYMBOLS global to isolate this test
-        with patch.dict(globals(), {'SYMBOLS': None}):
+        with patch.dict(globals(), {"SYMBOLS": None}):
             symbols = _load_symbols("fallback_symbols.txt")
-            assert symbols == {'p', 'q', 'r'}
+            assert symbols == {"p", "q", "r"}
             mock_read_text.assert_called_once_with("arsla", "fallback_symbols.txt")
-            mock_file_open.assert_called_once_with("fallback_symbols.txt", encoding="utf-8")
+            mock_file_open.assert_called_once_with(
+                "fallback_symbols.txt", encoding="utf-8"
+            )
 
     def test_tokenize_number_leading_dot(self):
         """Tests numbers starting with a dot."""
@@ -363,6 +374,6 @@ class TestLexer:
             Token("BLOCK_END", "]"),
             Token("SYMBOL", "+"),
             Token("SYMBOL", "a"),
-            Token("NUMBER", 1.0), # 100e-2 is 1.0
+            Token("NUMBER", 1.0),  # 100e-2 is 1.0
         ]
         assert tokenize(code) == expected_tokens
