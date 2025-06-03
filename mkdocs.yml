@@ -54,11 +54,7 @@ extra:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences:
-      custom_fence:
-        - name: mermaid
-          class: mermaid
-          # The problematic 'format' line has been removed from here!
+  - pymdownx.superfences # <-- The 'custom_fence' block has been completely removed from here
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.highlight:
