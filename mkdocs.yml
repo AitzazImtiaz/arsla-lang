@@ -6,7 +6,7 @@ repo_url: https://github.com/aitzazimtiaz/arsla-lang
 repo_name: aitzazimtiaz/arsla-lang
 edit_uri: edit/main/docs/
 
-# Theme Configuration (Material for MkDocs)
+# Theme Configuration
 theme:
   name: material
   palette:
@@ -39,11 +39,12 @@ theme:
   icon:
     logo: material/code-tags
 
-# Extra (e.g. footer social links)
+# Optional: Footer or Social Media – REMOVE if not needed
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/aitzazimtiaz
+      name: GitHub
 
 # Markdown Extensions
 markdown_extensions:
@@ -88,16 +89,8 @@ plugins:
             show_root_heading: true
             show_source: true
             separate_signature: true
-            members:
-              - arsla.builtins
-              - arsla.cli
-              - arsla.errors
-              - arsla.interpreter
-              - arsla.lexer
-              - arsla.parser
-              - arsla
 
-# Navigation Structure
+# Navigation
 nav:
   - Home: index.md
   - Getting Started:
