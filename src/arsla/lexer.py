@@ -42,7 +42,7 @@ SYMBOLS = _load_symbols()
 _NUMBER_RE = re.compile(r"^-?(?:\d+\.?\d*|\.?\d+)(?:[eE][+-]?\d+)?")
 
 
-def tokenize(code: str) -> List[Token]: # Changed to List[Token]
+def tokenize(code: str) -> List[Token]:  # Changed to List[Token]
     """Tokenizes Arsla source code.
 
     Args:
@@ -97,7 +97,9 @@ def tokenize(code: str) -> List[Token]: # Changed to List[Token]
     return tokens
 
 
-def _tokenize_string(code: str, pos: int) -> Tuple[Token, int]: # Changed to Tuple[Token, int]
+def _tokenize_string(
+    code: str, pos: int
+) -> Tuple[Token, int]:  # Changed to Tuple[Token, int]
     """Helper to tokenize a string literal.
 
     Args:
@@ -143,7 +145,9 @@ def _tokenize_string(code: str, pos: int) -> Tuple[Token, int]: # Changed to Tup
     raise ArslaLexerError(f"Unterminated string starting at position {start_pos}")
 
 
-def _tokenize_number(code: str, pos: int) -> Tuple[Token, int]: # Changed to Tuple[Token, int]
+def _tokenize_number(
+    code: str, pos: int
+) -> Tuple[Token, int]:  # Changed to Tuple[Token, int]
     """Helper to tokenize a number literal.
 
     Args:
