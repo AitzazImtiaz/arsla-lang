@@ -5,22 +5,18 @@ which is responsible for converting Arsla source code into a stream of tokens.
 It covers various token types including numbers, strings, block delimiters,
 and symbols, as well as error handling for invalid or malformed input.
 
-A `MockToken` class is used to simplify the creation of expected token lists
-for assertions. The `_load_symbols` function is patched to control the set
+The `_load_symbols` function is patched to control the set
 of recognized symbols during testing.
 """
 
-import importlib.resources
 import re
 from collections import namedtuple
-from unittest.mock import mock_open, patch
-
+from unittest.mock import patch, mock_open
+import importlib.resources # Placed after standard library imports
 import pytest
 
-# Assuming the lexer code is in a file named 'arsla/lexer.py'
-# and 'symbols.txt' is in the same directory or accessible via package resources.
 
-# --- Start of the lexer code (as provided) ---
+# --- Start of the lexer code (as provided, assuming it's in arsla/lexer.py) ---
 
 Token = namedtuple("Token", ["type", "value"])
 
@@ -42,9 +38,6 @@ def _load_symbols(filename="symbols.txt"):
         A set of valid single-character symbols.
     """
     try:
-        # We need to simulate the package context for this to work in tests
-        # or ensure 'arsla' is a discoverable package.
-        # For testing, we'll patch importlib.resources.
         data = importlib.resources.read_text("arsla", filename)
     except (FileNotFoundError, ModuleNotFoundError):
         with open(filename, encoding="utf-8") as f:
@@ -53,7 +46,11 @@ def _load_symbols(filename="symbols.txt"):
     return symbols
 
 
-# SYMBOLS = _load_symbols() # This will be set up by individual tests or mocks
+# SYMBOLS is often a global in lexer; for tests, it's mocked via fixture.
+# For the purpose of enabling direct imports in tests, we define it here,
+# but its value will be overridden by the fixture.
+SYMBOLS = set()
+
 
 _NUMBER_RE = re.compile(r"^-?(?:\d+\.?\d*|\.?\d+)(?:[eE][+-]?\d+)?")
 
@@ -74,10 +71,6 @@ def tokenize(code: str) -> list[Token]:
     tokens = []
     pos = 0
     length = len(code)
-
-    # Re-evaluate SYMBOLS within tokenize or pass it as an argument
-    # For now, let's assume SYMBOLS is globally available from the module.
-    # In real tests, we'd mock it.
 
     while pos < length:
         char = code[pos]
@@ -108,7 +101,8 @@ def tokenize(code: str) -> list[Token]:
             pos += 1
             continue
 
-        # Access global SYMBOLS. In tests, this will be mocked.
+        # Access global SYMBOLS from the module.
+        # This SYMBOLS will be set by the test fixture.
         if char in globals().get('SYMBOLS', set()):
             tokens.append(Token("SYMBOL", char))
             pos += 1
@@ -200,25 +194,27 @@ def _tokenize_number(code: str, pos: int) -> tuple[Token, int]:
 # --- End of the lexer code ---
 
 
-# Tests for the lexer
 class TestLexer:
+    """Tests for the Arsla lexer's `tokenize` function and its helpers."""
 
     @pytest.fixture(autouse=True)
     def setup_symbols(self):
-        """Fixture to mock _load_symbols and set SYMBOLS for each test."""
-        with patch('arsla.lexer._load_symbols', return_value={'a', 'b', '+'}) as mock_load:
-            # We need to explicitly set the global SYMBOLS in the lexer module
-            # This requires knowing the module path. If this test file is in 'tests/',
-            # and the lexer is in 'arsla/lexer.py', then the module name is 'arsla.lexer'.
-            # A more robust way might be to pass symbols to tokenize, but for a global, this works.
-            original_symbols = globals().get('SYMBOLS')
+        """Fixture to mock _load_symbols and set SYMBOLS for each test.
+
+        This ensures a consistent set of symbols for testing without relying
+        on an actual file or package resource. It also temporarily sets
+        the global `SYMBOLS` variable in the lexer module for the duration
+        of each test.
+        """
+        # Patch the function called by the lexer module to load symbols
+        with patch('arsla.lexer._load_symbols', return_value={'a', 'b', '+'}) as _:
+            # Temporarily set the global SYMBOLS in the current module's scope
+            # and yield control to the test.
+            original_symbols = globals()['SYMBOLS']
             globals()['SYMBOLS'] = {'a', 'b', '+'}
             yield
-            # Clean up after the test, restore original SYMBOLS if it existed
-            if original_symbols is not None:
-                globals()['SYMBOLS'] = original_symbols
-            else:
-                del globals()['SYMBOLS']
+            # Restore the original SYMBOLS after the test
+            globals()['SYMBOLS'] = original_symbols
 
 
     def test_tokenize_empty_code(self):
@@ -313,8 +309,9 @@ class TestLexer:
             tokenize("123a")
         with pytest.raises(ArslaLexerError, match="Invalid number format"):
             tokenize("-.e")
+        # Direct test of helper for a more specific error message check
         with pytest.raises(ArslaLexerError, match="Invalid number format: '1.2.3' at position 0"):
-            _tokenize_number("1.2.3", 0) # Directly test the helper for specific error message
+            _tokenize_number("1.2.3", 0)
 
 
     def test_tokenize_unexpected_character_error(self):
@@ -329,6 +326,7 @@ class TestLexer:
         """Tests that _load_symbols loads from package resources."""
         mock_read_text.return_value = "x y z"
         # Temporarily mock the SYMBOLS global to isolate this test
+        # We need to temporarily remove the fixture's effect to test _load_symbols directly
         with patch.dict(globals(), {'SYMBOLS': None}):
             symbols = _load_symbols("test_symbols.txt")
             assert symbols == {'x', 'y', 'z'}
