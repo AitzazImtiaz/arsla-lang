@@ -9,12 +9,12 @@ The `_load_symbols` function is patched to control the set
 of recognized symbols during testing.
 """
 
+import importlib.resources  # Placed after standard library imports
 import re
 from collections import namedtuple
-from unittest.mock import patch, mock_open
-import importlib.resources  # Placed after standard library imports
-import pytest
+from unittest.mock import mock_open, patch
 
+import pytest
 
 # --- Start of the lexer code (as provided, assuming it's in arsla/lexer.py) ---
 
