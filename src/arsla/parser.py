@@ -39,7 +39,7 @@ def parse(tokens: List[Token]) -> List[Any]:
         else:
             # ORIGINAL: stack[-1].append(token.value)
             # FIX: Append the entire Token object
-            stack[-1].append(token) # <--- CHANGE THIS LINE
+            stack[-1].append(token)  # <--- CHANGE THIS LINE
     if current_depth > 0:
         raise ArslaParserError(f"Unclosed {current_depth} block(s) - missing ']'")
     return stack[0]
@@ -66,7 +66,9 @@ def flatten_block(block: List[Any]) -> List[Token]:
         # IMPORTANT: if your AST for 'element' is already a Token object,
         # you might need to handle it differently here.
         # Assuming 'element' could be a raw value or a Token that was placed in the AST
-        elif isinstance(element, Token): # <--- Potentially needed if flatten_block is used on the primary AST
+        elif isinstance(
+            element, Token
+        ):  # <--- Potentially needed if flatten_block is used on the primary AST
             tokens.append(element)
         else:
             token_type = (
