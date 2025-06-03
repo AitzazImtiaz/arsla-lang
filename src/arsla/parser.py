@@ -37,7 +37,9 @@ def parse(tokens: List[Token]) -> List[Any]:
             stack.pop()
             current_depth -= 1
         else:
-            stack[-1].append(token.value)
+            # ORIGINAL: stack[-1].append(token.value)
+            # FIX: Append the entire Token object
+            stack[-1].append(token) # <--- CHANGE THIS LINE
     if current_depth > 0:
         raise ArslaParserError(f"Unclosed {current_depth} block(s) - missing ']'")
     return stack[0]
@@ -62,10 +64,16 @@ def flatten_block(block: List[Any]) -> List[Token]:
             tokens.extend(flatten_block(element))
             tokens.append(Token("BLOCK_END", "]"))
         else:
-            token_type = (
-                "NUMBER"
-                if isinstance(element, (int, float))
-                else "STRING" if isinstance(element, str) else "SYMBOL"
-            )
-            tokens.append(Token(token_type, element))
+            # IMPORTANT: if your AST for 'element' is already a Token object,
+            # you might need to handle it differently here.
+            # Assuming 'element' could be a raw value or a Token that was placed in the AST
+            if isinstance(element, Token): # <--- Potentially needed if flatten_block is used on the primary AST
+                tokens.append(element)
+            else:
+                token_type = (
+                    "NUMBER"
+                    if isinstance(element, (int, float))
+                    else "STRING" if isinstance(element, str) else "SYMBOL"
+                )
+                tokens.append(Token(token_type, element))
     return tokens
