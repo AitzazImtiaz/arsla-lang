@@ -7,6 +7,7 @@ and converting it into a stream of meaningful tokens.
 import importlib.resources
 import re
 from collections import namedtuple
+from typing import List, Tuple
 
 Token = namedtuple("Token", ["type", "value"])
 
@@ -41,7 +42,7 @@ SYMBOLS = _load_symbols()
 _NUMBER_RE = re.compile(r"^-?(?:\d+\.?\d*|\.?\d+)(?:[eE][+-]?\d+)?")
 
 
-def tokenize(code: str) -> list[Token]:
+def tokenize(code: str) -> List[Token]: # Changed to List[Token]
     """Tokenizes Arsla source code.
 
     Args:
@@ -96,7 +97,7 @@ def tokenize(code: str) -> list[Token]:
     return tokens
 
 
-def _tokenize_string(code: str, pos: int) -> tuple[Token, int]:
+def _tokenize_string(code: str, pos: int) -> Tuple[Token, int]: # Changed to Tuple[Token, int]
     """Helper to tokenize a string literal.
 
     Args:
@@ -142,7 +143,7 @@ def _tokenize_string(code: str, pos: int) -> tuple[Token, int]:
     raise ArslaLexerError(f"Unterminated string starting at position {start_pos}")
 
 
-def _tokenize_number(code: str, pos: int) -> tuple[Token, int]:
+def _tokenize_number(code: str, pos: int) -> Tuple[Token, int]: # Changed to Tuple[Token, int]
     """Helper to tokenize a number literal.
 
     Args:
