@@ -30,18 +30,22 @@ jobs:
       - name: Build MkDocs site
         run: mkdocs build
 
-      # --- NEW DIAGNOSTIC STEP: Check generated site content ---
-      - name: List built site content and check HTML
+      # --- CRUCIAL STEP FOR /docs/ BASE URL ---
+      # This creates a temporary root directory, moves the built 'site' content
+      # into its 'docs' subdirectory, and adds a .nojekyll file.
+      # This structure matches what GitHub Pages expects when you want your documentation
+      # served from 'https://aitzazimtiaz.github.io/arsla-lang/docs/'
+      - name: Prepare site for /docs/ deployment
         run: |
-          echo "--- Listing contents of the 'site' directory ---"
-          ls -R ./site
-          echo ""
-          echo "--- Content of ./site/language-reference/builtins/index.html (first 20 lines) ---"
-          # '|| true' prevents the step from failing if the file doesn't exist for some reason
-          head -n 20 ./site/language-reference/builtins/index.html || echo "File not found or empty."
-          echo ""
-          echo "--- Content of ./site/language-reference/overview/index.html (first 20 lines) ---"
-          head -n 20 ./site/language-reference/overview/index.html || echo "File not found or empty."
+          mkdir -p temp_deploy_root/docs # Create the target /docs/ folder
+          mv ./site/* ./temp_deploy_root/docs/ # Move all built site content into temp_deploy_root/docs/
+          # Create a .nojekyll file at the root to ensure GitHub Pages serves all content directly
+          touch temp_deploy_root/.nojekyll
+          echo "--- Final structure to be uploaded (temp_deploy_root): ---"
+          ls -R ./temp_deploy_root/
+          echo "--- Content of ./temp_deploy_root/docs/language-reference/builtins/index.html (first 20 lines) ---"
+          head -n 20 ./temp_deploy_root/docs/language-reference/builtins/index.html || echo "File not found or empty in temp_deploy_root/docs."
+      # --- END CRUCIAL STEP ---
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -49,7 +53,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './site' # The directory where mkdocs build puts the output
+          path: './temp_deploy_root' # Upload this new root directory as the artifact
 
       - name: Deploy to GitHub Pages
         id: deployment
