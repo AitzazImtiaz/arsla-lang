@@ -26,6 +26,7 @@ class MockToken:
 def test_parse_empty_tokens():
     assert parse([]) == []
 
+
 def test_parse_flat_list_of_literals_and_symbols():
     tokens = [
         MockToken("NUMBER", 123),
@@ -36,6 +37,7 @@ def test_parse_flat_list_of_literals_and_symbols():
     ]
     expected_ast = [123, "hello", "D", 4.5, "+"]
     assert parse(tokens) == expected_ast
+
 
 def test_parse_single_nested_block():
     tokens = [
@@ -49,6 +51,7 @@ def test_parse_single_nested_block():
     expected_ast = [1, [2, "inner"], "S"]
     assert parse(tokens) == expected_ast
 
+
 def test_parse_multiple_nested_blocks_at_same_level():
     tokens = [
         MockToken("BLOCK_START", "["),
@@ -60,6 +63,7 @@ def test_parse_multiple_nested_blocks_at_same_level():
     ]
     expected_ast = [[10], ["world"]]
     assert parse(tokens) == expected_ast
+
 
 def test_parse_deeply_nested_blocks():
     tokens = [
@@ -76,6 +80,7 @@ def test_parse_deeply_nested_blocks():
     expected_ast = [1, [2, [3]]]
     assert parse(tokens) == expected_ast
 
+
 def test_parse_empty_blocks():
     tokens = [
         MockToken("BLOCK_START", "["),
@@ -89,6 +94,7 @@ def test_parse_empty_blocks():
     expected_ast = [[], 5, [[]]]
     assert parse(tokens) == expected_ast
 
+
 def test_parse_unmatched_block_end_error():
     tokens = [
         MockToken("NUMBER", 1),
@@ -98,14 +104,18 @@ def test_parse_unmatched_block_end_error():
     with pytest.raises(ArslaParserError, match="Unmatched ']' without opening '\\["):
         parse(tokens)
 
+
 def test_parse_unclosed_block_error():
     tokens = [
         MockToken("BLOCK_START", "["),
         MockToken("NUMBER", 1),
         MockToken("STRING", "test"),
     ]
-    with pytest.raises(ArslaParserError, match="Unclosed 1 block\\(s\\) - missing '\\]'"):
+    with pytest.raises(
+        ArslaParserError, match="Unclosed 1 block\\(s\\) - missing '\\]'"
+    ):
         parse(tokens)
+
 
 def test_parse_multiple_unclosed_blocks_error():
     tokens = [
@@ -113,12 +123,15 @@ def test_parse_multiple_unclosed_blocks_error():
         MockToken("BLOCK_START", "["),
         MockToken("NUMBER", 1),
     ]
-    with pytest.raises(ArslaParserError, match="Unclosed 2 block\\(s\\) - missing '\\]'"):
+    with pytest.raises(
+        ArslaParserError, match="Unclosed 2 block\\(s\\) - missing '\\]'"
+    ):
         parse(tokens)
 
 
 def test_flatten_block_empty_list():
     assert flatten_block([]) == []
+
 
 def test_flatten_block_flat_list():
     block = [123, "hello", "D", 4.5, "+"]
@@ -131,6 +144,7 @@ def test_flatten_block_flat_list():
     ]
     assert flatten_block(block) == expected_tokens
 
+
 def test_flatten_block_single_nested_block():
     block = [1, [2, "inner"], "S"]
     expected_tokens = [
@@ -142,6 +156,7 @@ def test_flatten_block_single_nested_block():
         MockToken("SYMBOL", "S"),
     ]
     assert flatten_block(block) == expected_tokens
+
 
 def test_flatten_block_deeply_nested_blocks():
     block = [1, [2, [3]]]
@@ -156,6 +171,7 @@ def test_flatten_block_deeply_nested_blocks():
     ]
     assert flatten_block(block) == expected_tokens
 
+
 def test_flatten_block_empty_nested_blocks():
     block = [[], 5, [[]]]
     expected_tokens = [
@@ -168,6 +184,7 @@ def test_flatten_block_empty_nested_blocks():
         MockToken("BLOCK_END", "]"),
     ]
     assert flatten_block(block) == expected_tokens
+
 
 def test_flatten_block_mixed_types_and_nesting():
     block = ["a", [1, "b", [True, False]], "end"]
@@ -184,6 +201,7 @@ def test_flatten_block_mixed_types_and_nesting():
         MockToken("STRING", "end"),
     ]
     assert flatten_block(block) == expected_tokens
+
 
 def test_flatten_block_none_value():
     block = [1, None, "test"]
