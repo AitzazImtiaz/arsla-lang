@@ -1,0 +1,36 @@
+# .github/workflows/coverage.yml
+name: Run Tests & Upload Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install coverage codecov
+
+    - name: Run tests and collect coverage
+      run: |
+        coverage run -m pytest
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: coverage.xml
+        fail_ci_if_error: true
