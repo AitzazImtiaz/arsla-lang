@@ -6,6 +6,7 @@ with proper value resolution for literals and blocks.
 """
 
 from typing import Any, List
+
 from .errors import ArslaParserError
 from .lexer import Token
 
