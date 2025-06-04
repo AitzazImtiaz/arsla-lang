@@ -6,10 +6,24 @@ with proper value resolution for literals and blocks.
 """
 
 from typing import Any, List
-
 from .errors import ArslaParserError
 from .lexer import Token
 
+# Placeholder for Token class for demonstration
+class Token:
+    def __init__(self, type: str, value: Any):
+        self.type = type
+        self.value = value
+
+    def __repr__(self):
+        return f"Token(type='{self.type}', value={repr(self.value)})"
+
+# Placeholder for ArslaParserError class
+class ArslaParserError(Exception):
+    def __init__(self, message: str, tokens: List[Any] = None, op_name: str = ""):
+        super().__init__(message)
+        self.tokens = tokens
+        self.op_name = op_name
 
 def parse(tokens: List[Token]) -> List[Any]:
     """Parse a list of tokens into an abstract syntax tree (AST).
@@ -18,7 +32,7 @@ def parse(tokens: List[Token]) -> List[Any]:
         tokens: A list of Token objects.
 
     Returns:
-        A nested list representing the AST.  Returns a single list if no blocks are present.
+        A nested list representing the AST. Returns a single list if no blocks are present.
 
     Raises:
         ArslaParserError: If block delimiters are mismatched or unclosed blocks exist.
@@ -37,9 +51,12 @@ def parse(tokens: List[Token]) -> List[Any]:
             stack.pop()
             current_depth -= 1
         else:
-            # ORIGINAL: stack[-1].append(token.value)
-            # FIX: Append the entire Token object
-            stack[-1].append(token)  # <--- CHANGE THIS LINE
+            # Append the token's value for literal types, otherwise append the token object
+            if token.type in ["NUMBER", "STRING", "BOOLEAN", "NULL"]:
+                stack[-1].append(token.value)
+            else:
+                stack[-1].append(token) # For operators, symbols, etc.
+
     if current_depth > 0:
         raise ArslaParserError(f"Unclosed {current_depth} block(s) - missing ']'")
     return stack[0]
@@ -53,9 +70,6 @@ def flatten_block(block: List[Any]) -> List[Token]:
 
     Returns:
         A list of Token objects representing the flattened block (List[Token]).
-
-    Raises:
-        None
     """
     tokens = []
     for element in block:
@@ -63,18 +77,18 @@ def flatten_block(block: List[Any]) -> List[Token]:
             tokens.append(Token("BLOCK_START", "["))
             tokens.extend(flatten_block(element))
             tokens.append(Token("BLOCK_END", "]"))
-        # IMPORTANT: if your AST for 'element' is already a Token object,
-        # you might need to handle it differently here.
-        # Assuming 'element' could be a raw value or a Token that was placed in the AST
-        elif isinstance(
-            element, Token
-        ):  # <--- Potentially needed if flatten_block is used on the primary AST
+        elif isinstance(element, Token):
             tokens.append(element)
         else:
+            # Handle raw values (numbers, strings, booleans) that were added to the AST
             token_type = (
                 "NUMBER"
                 if isinstance(element, (int, float))
-                else "STRING" if isinstance(element, str) else "SYMBOL"
+                else "STRING"
+                if isinstance(element, str)
+                else "BOOLEAN"
+                if isinstance(element, bool)
+                else "NULL" if element is None else "UNKNOWN_TYPE"
             )
             tokens.append(Token(token_type, element))
     return tokens
