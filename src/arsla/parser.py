@@ -6,8 +6,10 @@ with proper value resolution for literals and blocks.
 """
 
 from typing import Any, List
+
 from .errors import ArslaParserError
 from .lexer import Token
+
 
 # Placeholder for Token class for demonstration
 class Token:
@@ -16,7 +18,7 @@ class Token:
         self.value = value
 
     def __repr__(self):
-        return f"Token(type='{self.type}', value={repr(self.value)})"
+        return f"Token(type='{self.type}', value={self.value!r})"
 
 # Placeholder for ArslaParserError class
 class ArslaParserError(Exception):
@@ -50,12 +52,11 @@ def parse(tokens: List[Token]) -> List[Any]:
                 raise ArslaParserError("Unmatched ']' without opening '['")
             stack.pop()
             current_depth -= 1
+        # Append the token's value for literal types, otherwise append the token object
+        elif token.type in ["NUMBER", "STRING", "BOOLEAN", "NULL"]:
+            stack[-1].append(token.value)
         else:
-            # Append the token's value for literal types, otherwise append the token object
-            if token.type in ["NUMBER", "STRING", "BOOLEAN", "NULL"]:
-                stack[-1].append(token.value)
-            else:
-                stack[-1].append(token) # For operators, symbols, etc.
+            stack[-1].append(token) # For operators, symbols, etc.
 
     if current_depth > 0:
         raise ArslaParserError(f"Unclosed {current_depth} block(s) - missing ']'")
