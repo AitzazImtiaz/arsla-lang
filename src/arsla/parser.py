@@ -45,6 +45,7 @@ class ArslaParserError(Exception):
         op_name (str, optional): The name of the operation or context where the error arose.
                                   Defaults to an empty string.
     """
+
     def __init__(self, message: str, tokens: List[Any] = None, op_name: str = ""):
         super().__init__(message)
         self.tokens = tokens
@@ -80,7 +81,7 @@ def parse(tokens: List[Token]) -> List[Any]:
         elif token.type in ["NUMBER", "STRING", "BOOLEAN", "NULL"]:
             stack[-1].append(token.value)
         else:
-            stack[-1].append(token) # For operators, symbols, etc.
+            stack[-1].append(token)  # For operators, symbols, etc.
 
     if current_depth > 0:
         raise ArslaParserError(f"Unclosed {current_depth} block(s) - missing ']'")
@@ -109,11 +110,15 @@ def flatten_block(block: List[Any]) -> List[Token]:
             token_type = (
                 "NUMBER"
                 if isinstance(element, (int, float))
-                else "STRING"
-                if isinstance(element, str)
-                else "BOOLEAN"
-                if isinstance(element, bool)
-                else "NULL" if element is None else "UNKNOWN_TYPE"
+                else (
+                    "STRING"
+                    if isinstance(element, str)
+                    else (
+                        "BOOLEAN"
+                        if isinstance(element, bool)
+                        else "NULL" if element is None else "UNKNOWN_TYPE"
+                    )
+                )
             )
             tokens.append(Token(token_type, element))
     return tokens
