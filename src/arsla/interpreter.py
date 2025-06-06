@@ -226,7 +226,10 @@ class Interpreter:
                             self.stack.copy(),
                             "->",
                         )
-                    if not (isinstance(identifier_node, Token) and identifier_node.type == TOKEN_TYPE.IDENTIFIER):
+                    if not (
+                        isinstance(identifier_node, Token)
+                        and identifier_node.type == TOKEN_TYPE.IDENTIFIER
+                    ):
                         raise ArslaRuntimeError(
                             f"Expected identifier after '->' operator, got {identifier_node.type.name} with value {identifier_node.value!r}",
                             self.stack.copy(),
@@ -380,17 +383,19 @@ class Interpreter:
 
         # Now, check against the *remaining* stack elements after popping the value to be placed
         if target_idx >= len(self.stack):
-            self.stack.append(value_to_place) # Put it back before raising error
+            self.stack.append(value_to_place)  # Put it back before raising error
             raise ArslaRuntimeError(
                 f"Stack index v{index} out of bounds. Stack has {len(self.stack)} elements (after popping assigner). "
-                f"Index must be between 1 and {len(self.stack)}.", # Adjusted for 1-based indexing
+                f"Index must be between 1 and {len(self.stack)}.",  # Adjusted for 1-based indexing
                 self.stack.copy(),
                 f"v{index}",
             )
 
         # Check if the target stack position is constant
         if target_idx in self._stack_position_constants:
-            self.stack.append(value_to_place)  # We pop the value to be placed, then re-append it as the operation is illegal
+            self.stack.append(
+                value_to_place
+            )  # We pop the value to be placed, then re-append it as the operation is illegal
             raise ArslaRuntimeError(
                 f"Cannot modify constant stack element at position {index} (via v{index}).",
                 self.stack.copy(),
@@ -439,7 +444,9 @@ class Interpreter:
             )
         self.stack.append(self._named_vars[name])
         if self.debug:
-            print(f"Pushed value of named variable '{name}': {self._named_vars[name]!r}")
+            print(
+                f"Pushed value of named variable '{name}': {self._named_vars[name]!r}"
+            )
 
     def _store_named_variable(self, name: str) -> None:
         """Pops the top value from the stack and stores it into the specified named variable.
@@ -459,7 +466,7 @@ class Interpreter:
         value_to_assign = self.stack.pop()
 
         if name in self._named_var_constants:
-            self.stack.append(value_to_assign) # Push back the value if it's a constant
+            self.stack.append(value_to_assign)  # Push back the value if it's a constant
             raise ArslaRuntimeError(
                 f"Cannot write to constant variable '{name}' using '->{name}'.",
                 self.stack.copy(),
@@ -507,7 +514,7 @@ class Interpreter:
 
         # Extend _indexed_vars list if needed
         while len(self._indexed_vars) <= target_idx:
-            self._indexed_vars.append(0) # Default value for new variables
+            self._indexed_vars.append(0)  # Default value for new variables
 
         self._indexed_vars[target_idx] = value_to_assign
         if self.debug:
@@ -637,7 +644,7 @@ class Interpreter:
         if len(self.stack) < 1:
             raise ArslaStackUnderflowError(1, len(self.stack), self.stack, "W")
 
-        body_block = self._pop_list(context="W") # Pass 'W' as context
+        body_block = self._pop_list(context="W")  # Pass 'W' as context
 
         loop_id = id(body_block)
 
@@ -670,13 +677,13 @@ class Interpreter:
             # Check for infinite numeric loop
             if current_loop_state["initial_top_value"] is None:
                 peeked_value = self._peek()
-                if isinstance(peeked_value, (int, float)) and self._is_truthy(peeked_value):
+                if isinstance(peeked_value, (int, float)) and self._is_truthy(
+                    peeked_value
+                ):
                     current_loop_state["initial_top_value"] = peeked_value
                 else:
                     current_loop_state["initial_top_value"] = "NON_NUMERIC_OR_FALSY"
-            elif (
-                current_loop_state["initial_top_value"] != "NON_NUMERIC_OR_FALSY"
-            ):
+            elif current_loop_state["initial_top_value"] != "NON_NUMERIC_OR_FALSY":
                 current_top = self._peek()
                 if (
                     isinstance(current_top, (int, float))
@@ -717,10 +724,10 @@ class Interpreter:
             ArslaRuntimeError: If `true_block` or `false_block` are not lists.
             ArslaStackUnderflowError: If there are fewer than three elements on the stack.
         """
-        if len(self.stack) < 3: # Explicit check for required elements
+        if len(self.stack) < 3:  # Explicit check for required elements
             raise ArslaStackUnderflowError(3, len(self.stack), self.stack, "?")
 
-        false_block = self._pop_list(context="?") # Pass '?' as context
+        false_block = self._pop_list(context="?")  # Pass '?' as context
         true_block = self._pop_list(context="?")  # Pass '?' as context
         cond = self._pop()
         if self._is_truthy(cond):
@@ -766,7 +773,11 @@ class Interpreter:
         """
         item = self._pop()
         if not isinstance(item, list):
-            raise ArslaRuntimeError(f"Expected a code block (list), but found {type(item).__name__} with value {item!r}.", self.stack.copy(), context)
+            raise ArslaRuntimeError(
+                f"Expected a code block (list), but found {type(item).__name__} with value {item!r}.",
+                self.stack.copy(),
+                context,
+            )
         return item
 
     def _is_truthy(self, val: Atom) -> bool:
