@@ -18,19 +18,18 @@ from pathlib import Path
 
 from rich.console import Console
 
-# Attempt to import readline for better REPL experience.
-# pyreadline3 is for Windows, standard readline for others.
 try:
     if platform.system() == "Windows":
-        import pyreadline3 as readline  # type: ignore # pylint: disable=W0611, C0415
+        import pyreadline3 as readline
     else:
-        import readline  # type: ignore # pylint: disable=W0611, C0415
+        import readline
 except ImportError:
     print(
         "Readline module could not be loaded. REPL history and completion may be limited.",
         file=sys.stderr,
     )
 
+from .builtins import get_display_stack_output
 from .errors import ArslaError, ArslaRuntimeError
 from .interpreter import Interpreter
 from .lexer import ArslaLexerError, tokenize
@@ -43,13 +42,13 @@ def main():
     """Validates and parses command-line arguments for an Arsla program."""
     parser = argparse.ArgumentParser(
         prog="arsla",
-        description="Arsla Code Golf Language Runtime",  # Line too long fixed here
+        description="Arsla Code Golf Language Runtime",
     )
     parser.add_argument(
         "-d",
         "--debug",
         action="store_true",
-        help="Enable debug mode",  # Line too long fixed here
+        help="Enable debug mode",
     )
     subparsers = parser.add_subparsers(dest="command")
     run_parser = subparsers.add_parser("run", help="Execute an Arsla program file")
@@ -73,7 +72,7 @@ def main():
     run_parser.add_argument(
         "file",
         type=aw_file,
-        help="Arsla source file to execute (must end in .aw)",  # Line too long fixed here
+        help="Arsla source file to execute (must end in .aw)",
     )
     run_parser.add_argument(
         "--show-stack", action="store_true", help="Print full stack after execution"
@@ -118,9 +117,12 @@ def run_file(path: str, debug: bool, show_stack: bool):
         console.print(f"[bold cyan]AST:[/] {parse(tokenize(code))}")
     try:
         interpreter_instance = Interpreter(debug=debug)
-        result = interpreter_instance.run(parse(tokenize(code))) or []
-        stack = interpreter_instance.stack if show_stack else result
-        console.print(f"[blue]Stack:[/] {stack}")
+        interpreter_instance.run(parse(tokenize(code)))
+        
+        if show_stack or get_display_stack_output():
+            console.print(f"[blue]Stack:[/] {interpreter_instance.stack}")
+        else:
+            pass
     except ArslaError as e:
         _print_error(e)
         sys.exit(1)
@@ -155,7 +157,11 @@ def start_repl(debug: bool):
             tokens = tokenize(buffer)
             ast = parse(tokens)
             interpreter.run(ast)
-            console.print(f"[blue]Stack:[/] {interpreter.stack}")
+
+            if get_display_stack_output():
+                console.print(f"[blue]Stack:[/] {interpreter.stack}")
+            else:
+                pass
             buffer = ""
         except (ArslaLexerError, ArslaParserError, ArslaRuntimeError) as e:
             _print_error(e)
