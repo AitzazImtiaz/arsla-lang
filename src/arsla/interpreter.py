@@ -5,14 +5,13 @@ including stack manipulation, command dispatching, and control flow
 operations like while loops and ternary conditionals, and variable assignment.
 """
 
-from typing import Any, Callable, Dict, List, Union
 import sys
-import time # For tracking execution time
+import time  # For tracking execution time
+from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import Token, TOKEN_TYPE
-
+from .lexer import TOKEN_TYPE, Token
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -245,7 +244,7 @@ class Interpreter:
                     self.stack.copy(),
                     "time_limit (parsing)"
                 )
-            
+
             try:
                 node = next(node_iterator)
             except StopIteration:
@@ -408,7 +407,7 @@ class Interpreter:
                 stack.copy(),
                 "mc"
             )
-        
+
         self.max_stack_size = new_capacity
         if self.debug:
             print(f"Maximum stack capacity (item count) set to: {self.max_stack_size}")
