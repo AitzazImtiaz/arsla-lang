@@ -22,6 +22,7 @@ class TOKEN_TYPE(Enum):
     BLOCK_START = auto()
     BLOCK_END = auto()
     VAR_SETTER = auto()
+    VAR_STORE = auto()
 
 
 class ArslaLexerError(Exception):
@@ -47,7 +48,6 @@ def _load_symbols(filename="symbols.txt"):
             with open(filename, encoding="utf-8") as f:
                 data = f.read()
         except FileNotFoundError:
-            print(f"Warning: '{filename}' not found. Using default symbol set.")
             data = "+-*/%&|^~_<>="
     symbols = set(data.strip().split())
     return symbols
@@ -87,6 +87,20 @@ def tokenize(code: str) -> List[Token]:
             tokens.append(token)
             pos = new_pos
             continue
+
+        var_store_match = re.match(r"->v(\d+)", code[pos:])
+        if var_store_match:
+            var_index_str = var_store_match.group(1)
+            try:
+                var_index = int(var_index_str)
+                tokens.append(Token(TOKEN_TYPE.VAR_STORE, var_index))
+                pos += len(var_store_match.group(0))
+                continue
+            except ValueError as exc:
+                raise ArslaLexerError(
+                    f"Invalid variable index '{var_index_str}' for '->v' at position {pos}. "
+                    "Index must be an integer."
+                ) from exc
 
         var_setter_match = re.match(r"v(\d+)", code[pos:])
         if var_setter_match:
@@ -130,11 +144,15 @@ def tokenize(code: str) -> List[Token]:
             ):
                 if re.match(r"v\d+", code[start_pos : pos + 1]):
                     break
+                if re.match(r"->v\d+", code[start_pos : pos + 1]):
+                    break
                 pos += 1
-            if pos > start_pos and not re.match(r"v\d+", code[start_pos:pos]):
+
+            if pos > start_pos:
                 symbol_value = code[start_pos:pos]
-                tokens.append(Token(TOKEN_TYPE.SYMBOL, symbol_value))
-                continue
+                if not re.match(r"v\d+", symbol_value) and not re.match(r"->v\d+", symbol_value):
+                    tokens.append(Token(TOKEN_TYPE.SYMBOL, symbol_value))
+                    continue
 
         raise ArslaLexerError(f"Unexpected character '{char}' at position {pos}")
     return tokens
