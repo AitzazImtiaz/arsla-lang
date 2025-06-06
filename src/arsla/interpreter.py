@@ -294,23 +294,43 @@ class Interpreter:
                         # If not a command, then treat it as a named variable to get
                         self._get_named_variable(node.value)
                 elif node.type == TOKEN_TYPE.BLOCK_START:
-                    block = self._parse_block(node_iterator)
+                    # Parse the raw AST block
+                    raw_block = self._parse_block(node_iterator)
+
+                    # Unwrap NUMBER/STRING tokens into native values, keep other items as-is
+                    literal: List[Any] = []
+                    for item in raw_block:
+                        if isinstance(item, Token) and item.type in (
+                            TOKEN_TYPE.NUMBER,
+                            TOKEN_TYPE.STRING
+                        ):
+                            literal.append(item.value)
+                        else:
+                            literal.append(item)
+                    block = literal
+
+                    # Enforce stack size limit
                     if len(self.stack) >= self.max_stack_size:
                         raise ArslaRuntimeError(
                             f"Stack overflow (item count): cannot push block as it would exceed current maximum stack size of {self.max_stack_size} items.",
                             self.stack.copy(),
-                            "stack_limit_items",
+                            "stack_limit_items"
                         )
-                    current_stack_memory = sum(
-                        sys.getsizeof(item) for item in self.stack
-                    ) + sys.getsizeof(block)
+
+                    # Enforce stack memory limit
+                    current_stack_memory = (
+                        sum(sys.getsizeof(item) for item in self.stack)
+                        + sys.getsizeof(block)
+                    )
                     if current_stack_memory > self.max_stack_memory_bytes:
                         raise ArslaRuntimeError(
                             f"Stack overflow (memory): cannot push block as it would exceed maximum stack memory of {self.max_stack_memory_bytes / (1024*1024):.2f} MB. "
                             f"Current usage: {current_stack_memory / (1024*1024):.2f} MB.",
                             self.stack.copy(),
-                            "stack_limit_memory",
+                            "stack_limit_memory"
                         )
+
+                    # Push the fresh literal onto the stack
                     self.stack.append(block)
                 elif node.type == TOKEN_TYPE.BLOCK_END:
                     raise ArslaRuntimeError(
