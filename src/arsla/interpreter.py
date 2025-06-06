@@ -51,7 +51,7 @@ class Interpreter:
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
         self._constants: set[int] = set()
-        self._vars: List[Any] = [] # Initialize the variable storage
+        self._vars: List[Any] = []  # Initialize the variable storage
 
         self.max_stack_size = max_stack_size
         self.max_stack_memory_bytes = max_stack_memory_bytes
@@ -98,7 +98,11 @@ class Interpreter:
 
         def cmd():
             try:
-                self.stack = fn(self.stack) if fn.__name__ == 'push_variables' else fn(self.stack) # Special handling for push_variables if it modifies stack directly
+                self.stack = (
+                    fn(self.stack)
+                    if fn.__name__ == "push_variables"
+                    else fn(self.stack)
+                )  # Special handling for push_variables if it modifies stack directly
             except ArslaRuntimeError as e:
                 e.stack_state = self.stack.copy()
                 raise
@@ -194,7 +198,7 @@ class Interpreter:
                     self._execute_symbol(node.value)
                 elif node.type == TOKEN_TYPE.VAR_SETTER:
                     self._set_variable(node.value)
-                elif node.type == TOKEN_TYPE.VAR_STORE: # Handle `->v<n>`
+                elif node.type == TOKEN_TYPE.VAR_STORE:  # Handle `->v<n>`
                     self._store_variable_from_stack(node.value)
                 elif node.type == TOKEN_TYPE.BLOCK_START:
                     block = self._parse_block(node_iterator)
@@ -351,12 +355,11 @@ class Interpreter:
 
         # Ensure _vars list is large enough by padding with 0s if necessary
         while len(self._vars) <= target_idx:
-            self._vars.append(0) # Pad with default value (e.g., 0)
+            self._vars.append(0)  # Pad with default value (e.g., 0)
 
         self._vars[target_idx] = value_to_set
         if self.debug:
             print(f"Assigned {value_to_set!r} to variable v{index}.")
-
 
     def _store_variable_from_stack(self, index: int) -> None:
         """Pops the top value from the stack and stores it into the variable at the specified 1-based index.
@@ -377,7 +380,7 @@ class Interpreter:
             raise ArslaRuntimeError(
                 f"Invalid variable index: {index}. Index must be 1 or greater for '->v'.",
                 self.stack.copy(),
-                f"->v{index}"
+                f"->v{index}",
             )
         if not self.stack:
             raise ArslaStackUnderflowError(1, 0, self.stack, f"->v{index}")
@@ -388,7 +391,7 @@ class Interpreter:
             raise ArslaRuntimeError(
                 f"Cannot write to constant position v{index} using '->v'.",
                 self.stack.copy(),
-                f"->v{index}"
+                f"->v{index}",
             )
 
         while len(self._vars) <= target_idx:
@@ -397,7 +400,6 @@ class Interpreter:
         self._vars[target_idx] = value_to_assign
         if self.debug:
             print(f"Stored {value_to_assign!r} into v{index} (via ->v operator).")
-
 
     def _get_variable_value(self, index: int) -> Any:
         """Retrieves the value of a variable at the specified 1-based index and pushes it onto the stack.
@@ -425,7 +427,6 @@ class Interpreter:
         self.stack.append(self._vars[target_idx])
         if self.debug:
             print(f"Pushed value of v{index} ({self._vars[target_idx]!r}) onto stack.")
-
 
     def make_constant(self, stack: Stack) -> None:
         """Marks a stack position as constant.
@@ -456,7 +457,7 @@ class Interpreter:
 
         target_idx = index_to_const - 1
 
-        if target_idx >= len(self._vars): # Check against _vars, not stack
+        if target_idx >= len(self._vars):  # Check against _vars, not stack
             raise ArslaRuntimeError(
                 f"Cannot make non-existent variable v{index_to_const} constant. "
                 f"Variables only extend to v{len(self._vars)} (index {len(self._vars)-1}).",
@@ -535,13 +536,9 @@ class Interpreter:
             if isinstance(peeked_value, (int, float)) and self._is_truthy(peeked_value):
                 current_loop_state["initial_top_value"] = peeked_value
             else:
-                current_loop_state["initial_top_value"] = (
-                    "NON_NUMERIC_OR_FALSY"
-                )
+                current_loop_state["initial_top_value"] = "NON_NUMERIC_OR_FALSY"
 
-        MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE = (
-            1000
-        )
+        MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE = 1000
 
         while self._is_truthy(self._peek()):
             current_loop_state["iteration_count"] += 1
