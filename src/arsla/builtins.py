@@ -401,10 +401,10 @@ def next_prime(stack: Stack) -> None:
     n = stack.pop()
     if not isinstance(n, (int, float)):
         raise ArslaRuntimeError("Prime check needs numeric input", stack, "P")
-    
+
     # Ensure n is an integer for prime calculation, floor if it's float
     candidate = math.floor(n) + 1 if isinstance(n, float) else n + 1
-    
+
     while True:
         if is_prime(candidate):
             stack.append(candidate)
