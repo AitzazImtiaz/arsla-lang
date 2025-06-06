@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import Token, TOKEN_TYPE # Import TOKEN_TYPE from lexer
+from .lexer import Token, TOKEN_TYPE  # Import TOKEN_TYPE from lexer
 
 
 Number = Union[int, float]
@@ -135,7 +135,7 @@ class Interpreter:
                     raise ArslaRuntimeError(
                         f"Unexpected token type in AST: {node.type.name} with value {node.value!r}",
                         self.stack.copy(),
-                        "AST"
+                        "AST",
                     )
             elif isinstance(node, (str, int, float, list)):
                 self.stack.append(node)
@@ -143,7 +143,7 @@ class Interpreter:
                 raise ArslaRuntimeError(
                     f"Unexpected AST node: {node!r} (type: {type(node).__name__})",
                     self.stack.copy(),
-                    "AST"
+                    "AST",
                 )
             if self.debug:
                 print(f"Stack after: {self.stack}\n")
@@ -184,14 +184,13 @@ class Interpreter:
             raise ArslaRuntimeError(
                 f"Invalid variable index: {index}. Index must be 1 or greater.",
                 self.stack.copy(),
-                f"v{index}"
+                f"v{index}",
             )
 
         while len(self.stack) <= target_idx:
             self.stack.append(0)
 
         self.stack[target_idx] = value_to_set
-
 
     def while_loop(self) -> None:
         """Executes a block of code repeatedly as long as the top of the stack is truthy.
