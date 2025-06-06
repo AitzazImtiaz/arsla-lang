@@ -5,13 +5,14 @@ including stack manipulation, command dispatching, and control flow
 operations like while loops and ternary conditionals, and variable assignment.
 """
 
-import sys
-import time  # For tracking execution time
 from typing import Any, Callable, Dict, List, Union
+import sys
+import time # For tracking execution time
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import TOKEN_TYPE, Token
+from .lexer import Token, TOKEN_TYPE
+
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -26,9 +27,9 @@ class Interpreter:
     Supports debug mode for tracing execution.
     """
 
-    DEFAULT_MAX_STACK_SIZE = 1000  # Max number of items on the stack
+    DEFAULT_MAX_STACK_SIZE = 23  # Max number of items on the stack
     DEFAULT_MAX_STACK_MEMORY_BYTES = 10 * 1024 * 1024  # 10 MB limit for stack content
-    DEFAULT_MAX_EXECUTION_TIME_SECONDS = 5 # 5 seconds execution limit
+    DEFAULT_MAX_EXECUTION_TIME_SECONDS = 23 # 5 seconds execution limit
 
     def __init__(self, debug: bool = False,
                  max_stack_size: int = DEFAULT_MAX_STACK_SIZE,
@@ -47,9 +48,12 @@ class Interpreter:
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
         self._constants: set[int] = set()
+
+        # Configurable limits
         self.max_stack_size = max_stack_size
         self.max_stack_memory_bytes = max_stack_memory_bytes
         self.max_execution_time_seconds = max_execution_time_seconds
+
         self._start_time = time.time() # To track overall program execution time
 
         # To detect problematic while loops (e.g., 1 [2] W)
@@ -71,6 +75,8 @@ class Interpreter:
         cmds["W"] = self._wrap_control(self.while_loop)
         cmds["?"] = self._wrap_control(self.ternary)
         cmds["c"] = self._wrap_builtin(self.make_constant)
+        # New command: mc for setting maximum stack capacity (item count)
+        cmds["mc"] = self._wrap_builtin(self.set_max_capacity) # 'mc' is now a built-in
         return cmds
 
     def _wrap_builtin(self, fn: Callable[[Stack], None]) -> Command:
@@ -92,6 +98,7 @@ class Interpreter:
 
         def cmd():
             try:
+                # The built-in function receives the stack directly
                 fn(self.stack)
             except ArslaRuntimeError as e:
                 e.stack_state = self.stack.copy()
@@ -161,7 +168,7 @@ class Interpreter:
             # Check stack size before each operation that might grow it
             if len(self.stack) > self.max_stack_size:
                 raise ArslaRuntimeError(
-                    f"Stack overflow (item count): exceeded maximum stack size of {self.max_stack_size} items.",
+                    f"Stack overflow (item count): exceeded current maximum stack size of {self.max_stack_size} items.",
                     self.stack.copy(),
                     "stack_limit_items"
                 )
@@ -238,7 +245,7 @@ class Interpreter:
                     self.stack.copy(),
                     "time_limit (parsing)"
                 )
-
+            
             try:
                 node = next(node_iterator)
             except StopIteration:
@@ -250,6 +257,7 @@ class Interpreter:
 
             if isinstance(node, Token):
                 if node.type == TOKEN_TYPE.BLOCK_START:
+                    # Recursively parse nested blocks
                     block_content.append(self._parse_block(node_iterator))
                 elif node.type == TOKEN_TYPE.BLOCK_END:
                     return block_content
@@ -319,7 +327,7 @@ class Interpreter:
             # Check limits immediately after appending, before next iteration
             if len(self.stack) > self.max_stack_size:
                 raise ArslaRuntimeError(
-                    f"Stack overflow (item count) during variable assignment to v{index}: exceeded maximum stack size of {self.max_stack_size} items.",
+                    f"Stack overflow (item count) during variable assignment to v{index}: exceeded current maximum stack size of {self.max_stack_size} items.",
                     self.stack.copy(),
                     f"v{index}"
                 )
@@ -376,6 +384,34 @@ class Interpreter:
         if self.debug:
             print(f"Marked stack position {target_idx} (v{index_to_const}) as constant.")
 
+    def set_max_capacity(self, stack: Stack) -> None:
+        """Sets the maximum number of items allowed on the stack.
+
+        Pops the top value from the stack, which must be a non-negative integer.
+        This updates the `max_stack_size` limit.
+
+        Args:
+            stack: The interpreter's stack.
+
+        Raises:
+            ArslaStackUnderflowError: If there's no value on the stack.
+            ArslaRuntimeError: If the popped value is not a non-negative integer.
+        """
+        if not stack:
+            raise ArslaStackUnderflowError(1, 0, stack, "mc")
+
+        new_capacity = stack.pop()
+
+        if not isinstance(new_capacity, int) or new_capacity < 0:
+            raise ArslaRuntimeError(
+                f"Command 'mc' requires a non-negative integer capacity, got {new_capacity!r}.",
+                stack.copy(),
+                "mc"
+            )
+        
+        self.max_stack_size = new_capacity
+        if self.debug:
+            print(f"Maximum stack capacity (item count) set to: {self.max_stack_size}")
 
     def while_loop(self) -> None:
         """Executes a block of code repeatedly as long as the value at the top of the stack is truthy.
@@ -407,6 +443,7 @@ class Interpreter:
 
         current_loop_state = self._while_loop_state[loop_id]
 
+        # Record initial condition value if it's a truthy number at the beginning of the loop execution
         if current_loop_state['initial_top_value'] is None:
              peeked_value = self._peek()
              if isinstance(peeked_value, (int, float)) and self._is_truthy(peeked_value):
@@ -454,7 +491,7 @@ class Interpreter:
             # Check stack size (item count) within while loop
             if len(self.stack) > self.max_stack_size:
                 raise ArslaRuntimeError(
-                    f"Stack overflow (item count) within while loop (ID: {loop_id}): exceeded maximum stack size of {self.max_stack_size} items.",
+                    f"Stack overflow (item count) within while loop (ID: {loop_id}): exceeded current maximum stack size of {self.max_stack_size} items.",
                     self.stack.copy(),
                     "W (stack_limit_items)"
                 )
