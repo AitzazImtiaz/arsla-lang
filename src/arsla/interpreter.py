@@ -51,7 +51,7 @@ class Interpreter:
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
         self._constants: set[int] = set()
-        self._vars: List[Any] = [] # Initialize the variable storage
+        self._vars: List[Any] = []  # Initialize the variable storage
 
         self.max_stack_size = max_stack_size
         self.max_stack_memory_bytes = max_stack_memory_bytes
@@ -98,7 +98,9 @@ class Interpreter:
 
         def cmd():
             try:
-                fn(self.stack) # Corrected: Call function directly, it modifies self.stack.
+                fn(
+                    self.stack
+                )  # Corrected: Call function directly, it modifies self.stack.
             except ArslaRuntimeError as e:
                 e.stack_state = self.stack.copy()
                 raise
@@ -192,9 +194,11 @@ class Interpreter:
                     self.stack.append(node.value)
                 elif node.type == TOKEN_TYPE.SYMBOL:
                     self._execute_symbol(node.value)
-                elif node.type == TOKEN_TYPE.VAR_GET: # Corrected: Handle v<n> as a getter
+                elif (
+                    node.type == TOKEN_TYPE.VAR_GET
+                ):  # Corrected: Handle v<n> as a getter
                     self._get_variable_value(node.value)
-                elif node.type == TOKEN_TYPE.VAR_STORE: # Corrected: Handle ->v<n>
+                elif node.type == TOKEN_TYPE.VAR_STORE:  # Corrected: Handle ->v<n>
                     self._store_variable_from_stack(node.value)
                 elif node.type == TOKEN_TYPE.BLOCK_START:
                     block = self._parse_block(node_iterator)
@@ -332,7 +336,7 @@ class Interpreter:
             raise ArslaRuntimeError(
                 f"Invalid variable index: {index}. Index must be 1 or greater for '->v'.",
                 self.stack.copy(),
-                f"->v{index}"
+                f"->v{index}",
             )
         if not self.stack:
             raise ArslaStackUnderflowError(1, 0, self.stack, f"->v{index}")
@@ -340,11 +344,11 @@ class Interpreter:
         value_to_assign = self.stack.pop()
 
         if target_idx in self._constants:
-            self.stack.append(value_to_assign) # Push back the value if it's a constant
+            self.stack.append(value_to_assign)  # Push back the value if it's a constant
             raise ArslaRuntimeError(
                 f"Cannot write to constant position v{index} using '->v'.",
                 self.stack.copy(),
-                f"->v{index}"
+                f"->v{index}",
             )
 
         while len(self._vars) <= target_idx:
@@ -353,7 +357,6 @@ class Interpreter:
         self._vars[target_idx] = value_to_assign
         if self.debug:
             print(f"Stored {value_to_assign!r} into v{index} (via ->v operator).")
-
 
     def _get_variable_value(self, index: int) -> None:
         """Retrieves the value of a variable at the specified 1-based index and pushes it onto the stack.
@@ -376,13 +379,14 @@ class Interpreter:
         if target_idx >= len(self._vars):
             self.stack.append(0)
             if self.debug:
-                print(f"Variable v{index} not found. Pushed default value 0 onto stack.")
+                print(
+                    f"Variable v{index} not found. Pushed default value 0 onto stack."
+                )
             return
 
         self.stack.append(self._vars[target_idx])
         if self.debug:
             print(f"Pushed value of v{index} ({self._vars[target_idx]!r}) onto stack.")
-
 
     def make_constant(self, stack: Stack) -> None:
         """Marks a variable position as constant.
@@ -493,13 +497,9 @@ class Interpreter:
             if isinstance(peeked_value, (int, float)) and self._is_truthy(peeked_value):
                 current_loop_state["initial_top_value"] = peeked_value
             else:
-                current_loop_state["initial_top_value"] = (
-                    "NON_NUMERIC_OR_FALSY"
-                )
+                current_loop_state["initial_top_value"] = "NON_NUMERIC_OR_FALSY"
 
-        MAX_NUMERIC_ITERATIONS_WITSET_CHANGE = (
-            1000
-        )
+        MAX_NUMERIC_ITERATIONS_WITSET_CHANGE = 1000
 
         while self._is_truthy(self._peek()):
             current_loop_state["iteration_count"] += 1
