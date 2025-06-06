@@ -54,7 +54,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
     run_parser = subparsers.add_parser("run", help="Execute an Arsla program file")
 
-    def ah_file(path: str) -> str:
+    def aw_file(path: str) -> str:
         """Validate and return a file path ending in '.aw'.
 
         Args:
@@ -72,7 +72,7 @@ def main():
 
     run_parser.add_argument(
         "file",
-        type=ah_file,
+        type=aw_file,
         help="Arsla source file to execute (must end in .aw)",  # Line too long fixed here
     )
     run_parser.add_argument(
