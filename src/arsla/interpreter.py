@@ -151,23 +151,38 @@ class Interpreter:
             raise ArslaRuntimeError(f"Unknown command: {sym}", self.stack.copy(), sym)
 
     def while_loop(self) -> None:
-        """Executes a block of code repeatedly as long as the top of the stack is truthy.
+        """Executes a block of code repeatedly as long as a condition remains truthy.
 
-        The top element on the stack is expected to be a list (the code block).
-        The element below it is consumed as the condition. The loop continues
-        as long as the condition evaluates to true after executing the block.
+        Expects two elements on the stack (from top to bottom):
+        1.  `block`: A list representing the code to execute in each iteration.
+        2.  `initial_condition`: A value that determines if the loop runs initially.
+
+        The loop executes the `block`. After each execution, the value at the
+        top of the stack is popped and used as the condition for the next iteration.
+        The loop terminates when this new condition is falsy.
 
         Raises:
-            ArslaRuntimeError: If the stack does not contain a list for the block
-                or if the condition evaluation causes a runtime error.
+            ArslaRuntimeError: If the stack does not contain a list for the block,
+                or if the block doesn't leave a value on the stack for the next condition.
             ArslaStackUnderflowError: If there are not enough elements on the stack.
         """
-        block = self._pop_list()
-        # The original code implicitly consumes the condition *after* the block.
-        # This design pattern means the block's execution must ensure a truthy
-        # value is at the top of the stack for the loop to continue.
-        while self._is_truthy(self._peek()):
-            self.run(block)
+        block = self._pop_list() # Pop the code block
+        current_condition = self._pop() # Pop the initial condition for the first check
+
+        while True:
+            if not self._is_truthy(current_condition):
+                break # Exit loop if the current condition is falsy
+
+            self.run(block) # Execute the loop body
+
+            # After block execution, a new condition for the next iteration
+            # is expected to be on top of the stack.
+            if not self.stack:
+                raise ArslaRuntimeError(
+                    "While loop block did not provide a new condition for next iteration.",
+                    self.stack.copy(), "W"
+                )
+            current_condition = self._pop() # Consume the new condition for the next check
 
     def ternary(self) -> None:
         """Executes one of two code blocks based on a boolean condition.
