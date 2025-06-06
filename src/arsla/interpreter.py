@@ -427,7 +427,7 @@ class Interpreter:
                 self.stack.copy(),
                 name,
             )
-        
+
         # If it's a command, execute it instead of getting a variable
         if name in self.commands:
             self._execute_symbol(name)
