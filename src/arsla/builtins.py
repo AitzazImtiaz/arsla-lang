@@ -14,6 +14,47 @@ Atom = Union[Number, str, List[Any]]
 Stack = List[Atom]
 
 
+_display_stack_output: bool = True
+
+
+def _set_display_stack_output(enable: bool) -> None:
+    """Sets the global flag for displaying the final stack output."""
+    global _display_stack_output
+    _display_stack_output = enable
+
+
+def get_display_stack_output() -> bool:
+    """Retrieves the current state of the global display stack output flag."""
+    global _display_stack_output
+    return _display_stack_output
+
+
+def enable_stack_output(stack: Stack) -> None:
+    """Enables the display of the final stack output.
+
+    This function is intended to be bound to a command (e.g., 'e') in the
+    language. It operates on the global `_display_stack_output` flag.
+
+    Args:
+        stack: The interpreter's stack. (Not directly used, but consistent
+               with other built-in function signatures.)
+    """
+    _set_display_stack_output(True)
+
+
+def disable_stack_output(stack: Stack) -> None:
+    """Disables the display of the final stack output.
+
+    This function is intended to be bound to a command (e.g., 'd') in the
+    language. It operates on the global `_display_stack_output` flag.
+
+    Args:
+        stack: The interpreter's stack. (Not directly used, but consistent
+               with other built-in function signatures.)
+    """
+    _set_display_stack_output(False)
+
+
 def duplicate(stack: Stack) -> None:
     """Duplicates the top element of a stack.
 
@@ -416,4 +457,6 @@ BUILTINS = {
     "P": next_prime,
     "R": reverse,
     "p": print_top,
+    "e": enable_stack_output,
+    "d": disable_stack_output,
 }
