@@ -140,6 +140,7 @@ class Interpreter:
         # 'c' command is now much more complex, handled by make_constant
         cmds["c"] = self._wrap_builtin(self.make_constant)
         cmds["mc"] = self._wrap_builtin(self.set_max_capacity)
+        cmds["gv"] = self._wrap_control(self._handle_gv_command)
         return cmds
 
     def _wrap_builtin(self, fn: Callable[[Stack], None]) -> Command:
@@ -584,6 +585,22 @@ class Interpreter:
             print(
                 f"Stored {value_to_assign!r} into indexed variable v{index} (via ->v operator)."
             )
+
+    def _handle_gv_command(self) -> None:
+        """Helper to handle the 'gv' command (get indexed variable).
+        Pops an integer from the stack and calls _get_indexed_variable.
+        """
+        if not self.stack:
+            raise ArslaStackUnderflowError(1, 0, self.stack, "gv")
+        
+        index = self.stack.pop()
+        if not isinstance(index, int) or index <= 0:
+            raise ArslaRuntimeError(
+                f"Command 'gv' requires a positive integer index on stack, got {index!r}.",
+                self.stack.copy(),
+                "gv",
+            )
+        self._get_indexed_variable(index)
 
     def make_constant(self, stack: Stack) -> None:
         """Marks a variable (named or indexed) or a stack position as constant.
