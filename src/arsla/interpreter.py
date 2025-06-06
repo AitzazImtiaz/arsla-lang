@@ -13,6 +13,7 @@ from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
 from .lexer import TOKEN_TYPE, Token
 
+
 Number = Union[int, float]
 Atom = Union[Number, str, list]
 Stack = List[Atom]
@@ -50,7 +51,7 @@ class Interpreter:
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
         self._constants: set[int] = set()
-        self._vars: List[Any] = []  # Initialize the variable storage
+        self._vars: List[Any] = [] # Initialize the variable storage
 
         self.max_stack_size = max_stack_size
         self.max_stack_memory_bytes = max_stack_memory_bytes
@@ -97,11 +98,7 @@ class Interpreter:
 
         def cmd():
             try:
-                self.stack = (
-                    fn(self.stack)
-                    if fn.__name__ == "push_variables"
-                    else fn(self.stack)
-                )  # Special handling for push_variables if it modifies stack directly
+                fn(self.stack) # Corrected: Call function directly, it modifies self.stack.
             except ArslaRuntimeError as e:
                 e.stack_state = self.stack.copy()
                 raise
@@ -145,8 +142,8 @@ class Interpreter:
 
         Raises:
             ArslaRuntimeError: If an unknown command symbol is encountered,
-                an unexpected AST node type is found, an error occurs during
-                variable assignment, or block parsing fails.
+            an unexpected AST node type is found, an error occurs during
+            variable assignment, or block parsing fails.
         """
         self._start_time = time.time()
         program_iterator = iter(ast)
@@ -195,9 +192,9 @@ class Interpreter:
                     self.stack.append(node.value)
                 elif node.type == TOKEN_TYPE.SYMBOL:
                     self._execute_symbol(node.value)
-                elif node.type == TOKEN_TYPE.VAR_SETTER:
-                    self._set_variable(node.value)
-                elif node.type == TOKEN_TYPE.VAR_STORE:  # Handle `->v<n>`
+                elif node.type == TOKEN_TYPE.VAR_GET: # Corrected: Handle v<n> as a getter
+                    self._get_variable_value(node.value)
+                elif node.type == TOKEN_TYPE.VAR_STORE: # Corrected: Handle ->v<n>
                     self._store_variable_from_stack(node.value)
                 elif node.type == TOKEN_TYPE.BLOCK_START:
                     block = self._parse_block(node_iterator)
@@ -316,50 +313,6 @@ class Interpreter:
         else:
             raise ArslaRuntimeError(f"Unknown command: {sym}", self.stack.copy(), sym)
 
-    def _set_variable(self, index: int) -> None:
-        """Sets the element at the specified 1-based variable index directly on the stack.
-
-        Pops the top value from the stack and places it at `index - 1`.
-        This operation is typically associated with the `v<n>` syntax.
-
-        Args:
-            index: The 1-based index (e.g., 2 for v2).
-
-        Raises:
-            ArslaStackUnderflowError: If there's no value on the stack to set.
-            ArslaRuntimeError: If the provided index is invalid (less than 1)
-                               or if the target position is a constant.
-        """
-        if not self.stack:
-            raise ArslaStackUnderflowError(1, 0, self.stack, f"v{index}")
-
-        value_to_set = self.stack.pop()
-
-        target_idx = index - 1
-
-        if target_idx < 0:
-            raise ArslaRuntimeError(
-                f"Invalid variable index: {index}. Index must be 1 or greater.",
-                self.stack.copy(),
-                f"v{index}",
-            )
-
-        if target_idx in self._constants:
-            self.stack.append(value_to_set)
-            raise ArslaRuntimeError(
-                f"Cannot write to constant position v{index}.",
-                self.stack.copy(),
-                f"v{index}",
-            )
-
-        # Ensure _vars list is large enough by padding with 0s if necessary
-        while len(self._vars) <= target_idx:
-            self._vars.append(0)  # Pad with default value (e.g., 0)
-
-        self._vars[target_idx] = value_to_set
-        if self.debug:
-            print(f"Assigned {value_to_set!r} to variable v{index}.")
-
     def _store_variable_from_stack(self, index: int) -> None:
         """Pops the top value from the stack and stores it into the variable at the specified 1-based index.
 
@@ -379,7 +332,7 @@ class Interpreter:
             raise ArslaRuntimeError(
                 f"Invalid variable index: {index}. Index must be 1 or greater for '->v'.",
                 self.stack.copy(),
-                f"->v{index}",
+                f"->v{index}"
             )
         if not self.stack:
             raise ArslaStackUnderflowError(1, 0, self.stack, f"->v{index}")
@@ -387,10 +340,11 @@ class Interpreter:
         value_to_assign = self.stack.pop()
 
         if target_idx in self._constants:
+            self.stack.append(value_to_assign) # Push back the value if it's a constant
             raise ArslaRuntimeError(
                 f"Cannot write to constant position v{index} using '->v'.",
                 self.stack.copy(),
-                f"->v{index}",
+                f"->v{index}"
             )
 
         while len(self._vars) <= target_idx:
@@ -400,7 +354,8 @@ class Interpreter:
         if self.debug:
             print(f"Stored {value_to_assign!r} into v{index} (via ->v operator).")
 
-    def _get_variable_value(self, index: int) -> Any:
+
+    def _get_variable_value(self, index: int) -> None:
         """Retrieves the value of a variable at the specified 1-based index and pushes it onto the stack.
 
         Args:
@@ -417,22 +372,24 @@ class Interpreter:
                 self.stack.copy(),
                 f"v{index}",
             )
+        # If the variable hasn't been assigned yet, treat it as 0
         if target_idx >= len(self._vars):
-            raise ArslaRuntimeError(
-                f"Variable v{index} not found. No value assigned yet.",
-                self.stack.copy(),
-                f"v{index}",
-            )
+            self.stack.append(0)
+            if self.debug:
+                print(f"Variable v{index} not found. Pushed default value 0 onto stack.")
+            return
+
         self.stack.append(self._vars[target_idx])
         if self.debug:
             print(f"Pushed value of v{index} ({self._vars[target_idx]!r}) onto stack.")
 
+
     def make_constant(self, stack: Stack) -> None:
-        """Marks a stack position as constant.
+        """Marks a variable position as constant.
 
         Pops the top value from the stack, which must be a positive integer
         representing the 1-based index to make constant. Once marked,
-        that position cannot be modified by `v<n>` operations.
+        that position cannot be modified by `->v<n>` operations.
 
         Args:
             stack: The interpreter's stack.
@@ -440,7 +397,7 @@ class Interpreter:
         Raises:
             ArslaStackUnderflowError: If there's no value on the stack.
             ArslaRuntimeError: If the popped value is not a positive integer,
-                               or if the index is out of bounds for existing stack.
+                               or if the index is out of bounds for existing variables.
         """
         if not stack:
             raise ArslaStackUnderflowError(1, 0, stack, "c")
@@ -456,7 +413,8 @@ class Interpreter:
 
         target_idx = index_to_const - 1
 
-        if target_idx >= len(self._vars):  # Check against _vars, not stack
+        # Check against _vars for existing variable, not stack length
+        if target_idx >= len(self._vars):
             raise ArslaRuntimeError(
                 f"Cannot make non-existent variable v{index_to_const} constant. "
                 f"Variables only extend to v{len(self._vars)} (index {len(self._vars)-1}).",
@@ -535,9 +493,13 @@ class Interpreter:
             if isinstance(peeked_value, (int, float)) and self._is_truthy(peeked_value):
                 current_loop_state["initial_top_value"] = peeked_value
             else:
-                current_loop_state["initial_top_value"] = "NON_NUMERIC_OR_FALSY"
+                current_loop_state["initial_top_value"] = (
+                    "NON_NUMERIC_OR_FALSY"
+                )
 
-        MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE = 1000
+        MAX_NUMERIC_ITERATIONS_WITSET_CHANGE = (
+            1000
+        )
 
         while self._is_truthy(self._peek()):
             current_loop_state["iteration_count"] += 1
@@ -566,11 +528,11 @@ class Interpreter:
                 ):
                     if (
                         current_loop_state["iteration_count"]
-                        > MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE
+                        > MAX_NUMERIC_ITERATIONS_WITSET_CHANGE
                     ):
                         raise ArslaRuntimeError(
                             f"Infinite loop detected: Numeric condition '{current_top}' "
-                            f"remained unchanged for over {MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE} iterations. "
+                            f"remained unchanged for over {MAX_NUMERIC_ITERATIONS_WITSET_CHANGE} iterations. "
                             f"Expected termination (e.g., reaching 0 or changing value/type).",
                             self.stack.copy(),
                             "W (infinite numeric)",
