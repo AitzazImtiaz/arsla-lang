@@ -118,7 +118,7 @@ def run_file(path: str, debug: bool, show_stack: bool):
     try:
         interpreter_instance = Interpreter(debug=debug)
         interpreter_instance.run(parse(tokenize(code)))
-        
+
         if show_stack or get_display_stack_output():
             console.print(f"[blue]Stack:[/] {interpreter_instance.stack}")
         else:
