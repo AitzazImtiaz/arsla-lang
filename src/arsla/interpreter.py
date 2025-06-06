@@ -74,6 +74,55 @@ class Interpreter:
 
         self._while_loop_state: Dict[int, Dict[str, Any]] = {}
 
+    def _get_indexed_variable(self, index: int) -> None:
+        """Pushes the value of an indexed variable onto the stack.
+
+        Args:
+            index: The 1-based index of the variable (e.g., 1 for v1).
+
+        Raises:
+            ArslaRuntimeError: If the provided index is invalid (less than 1)
+                               or if the indexed variable has not been assigned a value.
+        """
+        target_idx = index - 1
+
+        if target_idx < 0:
+            raise ArslaRuntimeError(
+                f"Invalid variable index: {index}. Index must be 1 or greater for 'gv'.",
+                self.stack.copy(),
+                f"gv {index}",
+            )
+
+        if target_idx >= len(self._indexed_vars):
+            raise ArslaRuntimeError(
+                f"Undefined indexed variable v{index}. Assign a value using '->v{index}' first.",
+                self.stack.copy(),
+                f"gv {index}",
+            )
+
+        value = self._indexed_vars[target_idx]
+
+        if len(self.stack) >= self.max_stack_size:
+            raise ArslaRuntimeError(
+                f"Stack overflow (item count): cannot push variable value {value!r} as it would exceed current maximum stack size of {self.max_stack_size} items.",
+                self.stack.copy(),
+                "stack_limit_items",
+            )
+        current_stack_memory = sum(
+            sys.getsizeof(item) for item in self.stack
+        ) + sys.getsizeof(value)
+        if current_stack_memory > self.max_stack_memory_bytes:
+            raise ArslaRuntimeError(
+                f"Stack overflow (memory): cannot push variable value {value!r} as it would exceed maximum stack memory of {self.max_stack_memory_bytes / (1024*1024):.2f} MB. "
+                f"Current usage: {current_stack_memory / (1024*1024):.2f} MB.",
+                self.stack.copy(),
+                "stack_limit_memory",
+            )
+
+        self.stack.append(value)
+        if self.debug:
+            print(f"Pushed value of indexed variable v{index}: {value!r}")
+
     def _init_commands(self) -> Dict[str, Command]:
         """Initializes and returns a dictionary of available commands.
 
