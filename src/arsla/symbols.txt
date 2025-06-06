@@ -19,3 +19,7 @@ p
 C
 e
 d
+VAR_GET
+VAR_ASSIGN
+mc
+c
