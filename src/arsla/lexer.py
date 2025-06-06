@@ -21,7 +21,7 @@ class TOKEN_TYPE(Enum):
     SYMBOL = auto()
     BLOCK_START = auto()
     BLOCK_END = auto()
-    VAR_GET = auto()    # v<n> is now a variable getter
+    VAR_GET = auto()  # v<n> is now a variable getter
     VAR_STORE = auto()  # ->v<n> is the variable setter
 
 
