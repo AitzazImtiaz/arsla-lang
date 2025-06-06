@@ -21,8 +21,8 @@ class TOKEN_TYPE(Enum):
     SYMBOL = auto()
     BLOCK_START = auto()
     BLOCK_END = auto()
-    VAR_SETTER = auto()
-    VAR_STORE = auto()
+    VAR_GET = auto()    # Changed: v<n> is now a variable getter
+    VAR_STORE = auto()  # ->v<n> remains the variable setter
 
 
 class ArslaLexerError(Exception):
@@ -69,7 +69,7 @@ def tokenize(code: str) -> List[Token]:
 
     Raises:
         ArslaLexerError: If an unterminated string, invalid number,
-                         unexpected character, or invalid variable setter format is encountered.
+                         unexpected character, or invalid variable format is encountered.
     """
     tokens = []
     pos = 0
@@ -88,6 +88,7 @@ def tokenize(code: str) -> List[Token]:
             pos = new_pos
             continue
 
+        # Handle '->vN' (variable store/setter)
         var_store_match = re.match(r"->v(\d+)", code[pos:])
         if var_store_match:
             var_index_str = var_store_match.group(1)
@@ -102,13 +103,14 @@ def tokenize(code: str) -> List[Token]:
                     "Index must be an integer."
                 ) from exc
 
-        var_setter_match = re.match(r"v(\d+)", code[pos:])
-        if var_setter_match:
-            var_index_str = var_setter_match.group(1)
+        # Handle 'vN' (variable getter)
+        var_getter_match = re.match(r"v(\d+)", code[pos:])
+        if var_getter_match:
+            var_index_str = var_getter_match.group(1)
             try:
                 var_index = int(var_index_str)
-                tokens.append(Token(TOKEN_TYPE.VAR_SETTER, var_index))
-                pos += len(var_setter_match.group(0))
+                tokens.append(Token(TOKEN_TYPE.VAR_GET, var_index))
+                pos += len(var_getter_match.group(0))
                 continue
             except ValueError as exc:
                 raise ArslaLexerError(
@@ -142,19 +144,16 @@ def tokenize(code: str) -> List[Token]:
             while pos < length and (
                 code[pos].isalnum() or code[pos] in "+-*/%&|^~_<>="
             ):
-                if re.match(r"v\d+", code[start_pos : pos + 1]):
-                    break
-                if re.match(r"->v\d+", code[start_pos : pos + 1]):
+                # Ensure we don't accidentally consume part of a variable token as a symbol
+                peek_next = code[start_pos : pos + 1]
+                if re.match(r"v\d+", peek_next) or re.match(r"->v\d+", peek_next):
                     break
                 pos += 1
 
             if pos > start_pos:
                 symbol_value = code[start_pos:pos]
-                if not re.match(r"v\d+", symbol_value) and not re.match(
-                    r"->v\d+", symbol_value
-                ):
-                    tokens.append(Token(TOKEN_TYPE.SYMBOL, symbol_value))
-                    continue
+                tokens.append(Token(TOKEN_TYPE.SYMBOL, symbol_value))
+                continue
 
         raise ArslaLexerError(f"Unexpected character '{char}' at position {pos}")
     return tokens
@@ -191,6 +190,7 @@ def _tokenize_string(code: str, pos: int) -> Tuple[Token, int]:
             elif char == "\\":
                 str_chars.append("\\")
             else:
+                # If an invalid escape sequence, keep the backslash and the character
                 str_chars.append("\\")
                 str_chars.append(char)
             escape = False
