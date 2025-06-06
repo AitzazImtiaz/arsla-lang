@@ -327,6 +327,8 @@ def less_than(stack: Stack) -> None:
     Raises:
         ArslaRuntimeError: If the operands cannot be compared.
     """
+    if len(stack) < 2:
+        raise ArslaRuntimeError("Need ≥2 elements for comparison", stack, "<")
     a, b = (stack.pop(), stack.pop())
     try:
         stack.append(1 if b < a else 0)
@@ -348,6 +350,8 @@ def greater_than(stack: Stack) -> None:
     Raises:
         ArslaRuntimeError: If the operands cannot be compared.
     """
+    if len(stack) < 2:
+        raise ArslaRuntimeError("Need ≥2 elements for comparison", stack, ">")
     a, b = (stack.pop(), stack.pop())
     try:
         stack.append(1 if b > a else 0)
@@ -365,6 +369,8 @@ def equal(stack: Stack) -> None:
     Args:
         stack: The stack to operate on.
     """
+    if len(stack) < 2:
+        raise ArslaRuntimeError("Need ≥2 elements for equality check", stack, "=")
     a, b = (stack.pop(), stack.pop())
     stack.append(1 if a == b else 0)
 
@@ -372,7 +378,7 @@ def equal(stack: Stack) -> None:
 def next_prime(stack: Stack) -> None:
     """Finds the next prime number greater than the top element of the stack.
 
-    The top element must be a numeric type.
+    The top element must be a non-negative integer.
 
     Args:
         stack: The stack to operate on.
@@ -395,7 +401,10 @@ def next_prime(stack: Stack) -> None:
     n = stack.pop()
     if not isinstance(n, (int, float)):
         raise ArslaRuntimeError("Prime check needs numeric input", stack, "P")
-    candidate = math.floor(n) + 1
+    
+    # Ensure n is an integer for prime calculation, floor if it's float
+    candidate = math.floor(n) + 1 if isinstance(n, float) else n + 1
+    
     while True:
         if is_prime(candidate):
             stack.append(candidate)
@@ -421,6 +430,8 @@ def reverse(stack: Stack) -> None:
     if isinstance(item, list):
         reversed_item = item[::-1]
     else:
+        # Convert to string for reversal, then back to original type if possible/desired
+        # For simplicity, if it's not a list, we'll treat it as a string
         reversed_item = str(item)[::-1]
     stack.append(reversed_item)
 
