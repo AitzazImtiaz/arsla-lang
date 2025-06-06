@@ -9,8 +9,7 @@ from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import Token, TOKEN_TYPE
-
+from .lexer import TOKEN_TYPE, Token
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -36,7 +35,7 @@ class Interpreter:
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
         # New: Set to store indices of constant stack positions (0-based)
-        self._constants: set[int] = set() 
+        self._constants: set[int] = set()
 
     def _init_commands(self) -> Dict[str, Command]:
         """Initializes and returns a dictionary of available commands.
@@ -53,7 +52,7 @@ class Interpreter:
         cmds["W"] = self._wrap_control(self.while_loop)
         cmds["?"] = self._wrap_control(self.ternary)
         # New: Add the 'c' command for making a stack position constant
-        cmds["c"] = self._wrap_builtin(self.make_constant) 
+        cmds["c"] = self._wrap_builtin(self.make_constant)
         return cmds
 
     def _wrap_builtin(self, fn: Callable[[Stack], None]) -> Command:
@@ -191,11 +190,11 @@ class Interpreter:
                 self.stack.copy(),
                 f"v{index}"
             )
-        
+
         # New: Check if the target index is a constant
         if target_idx in self._constants:
             # Push back the value that was popped, as we can't set it
-            self.stack.append(value_to_set) 
+            self.stack.append(value_to_set)
             raise ArslaRuntimeError(
                 f"Cannot write to constant position v{index}.",
                 self.stack.copy(),
@@ -233,7 +232,7 @@ class Interpreter:
                 stack.copy(),
                 "c"
             )
-        
+
         # Convert to 0-based index
         target_idx = index_to_const - 1
 

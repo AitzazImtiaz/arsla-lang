@@ -8,7 +8,7 @@ import importlib.resources
 import re
 from collections import namedtuple
 from enum import Enum, auto
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 Token = namedtuple("Token", ["type", "value"])
 
