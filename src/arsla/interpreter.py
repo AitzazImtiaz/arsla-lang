@@ -9,8 +9,7 @@ from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import Token, TOKEN_TYPE
-
+from .lexer import TOKEN_TYPE, Token
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -302,7 +301,7 @@ class Interpreter:
                 self.stack.copy(),
                 f"v{index}"
             )
-        
+
         if target_idx in self._constants:
             self.stack.append(value_to_set)
             raise ArslaRuntimeError(
@@ -342,7 +341,7 @@ class Interpreter:
                 stack.copy(),
                 "c"
             )
-        
+
         target_idx = index_to_const - 1
 
         if target_idx >= len(self.stack):
