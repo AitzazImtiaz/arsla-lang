@@ -272,7 +272,10 @@ class Interpreter:
                             self.stack.copy(),
                             "->",
                         )
-                    if not (isinstance(identifier_node, Token) and identifier_node.type == TOKEN_TYPE.IDENTIFIER):
+                    if not (
+                        isinstance(identifier_node, Token)
+                        and identifier_node.type == TOKEN_TYPE.IDENTIFIER
+                    ):
                         raise ArslaRuntimeError(
                             f"Expected identifier after '->' operator, got {identifier_node.type.name} with value {identifier_node.value!r}",
                             self.stack.copy(),
@@ -283,7 +286,9 @@ class Interpreter:
                 elif node.type == TOKEN_TYPE.IDENTIFIER:
                     # First, try to execute it as a command
                     if node.value in self.commands:
-                        self._execute_symbol(node.value) # _execute_symbol calls the command
+                        self._execute_symbol(
+                            node.value
+                        )  # _execute_symbol calls the command
                     else:
                         # If not a command, then treat it as a named variable to get
                         self._get_named_variable(node.value)
@@ -470,7 +475,9 @@ class Interpreter:
         Raises:
             ArslaRuntimeError: If the named variable has not been assigned a value.
         """
-        if name not in self.commands and name not in self._named_vars: # Check if it's a command before a variable
+        if (
+            name not in self.commands and name not in self._named_vars
+        ):  # Check if it's a command before a variable
             raise ArslaRuntimeError(
                 f"Undefined variable '{name}'. Assign a value using 'value ->{name}' first.",
                 self.stack.copy(),
@@ -800,7 +807,9 @@ class Interpreter:
         condition = self._pop(context="? (condition)")
 
         if self.debug:
-            print(f"Ternary operator. Condition: {condition!r}, Truthy: {self._is_truthy(condition)}")
+            print(
+                f"Ternary operator. Condition: {condition!r}, Truthy: {self._is_truthy(condition)}"
+            )
 
         if self._is_truthy(condition):
             if self.debug:
