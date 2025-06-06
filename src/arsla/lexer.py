@@ -150,7 +150,9 @@ def tokenize(code: str) -> List[Token]:
 
             if pos > start_pos:
                 symbol_value = code[start_pos:pos]
-                if not re.match(r"v\d+", symbol_value) and not re.match(r"->v\d+", symbol_value):
+                if not re.match(r"v\d+", symbol_value) and not re.match(
+                    r"->v\d+", symbol_value
+                ):
                     tokens.append(Token(TOKEN_TYPE.SYMBOL, symbol_value))
                     continue
 
