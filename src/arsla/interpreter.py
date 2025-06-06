@@ -7,7 +7,7 @@ operations like while loops and ternary conditionals.
 
 from typing import Any, Callable, Dict, List, Union
 
-from .builtins import BUILTINS
+from .builtins import BUILTINS, get_display_stack_output
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
 from .lexer import Token
 
