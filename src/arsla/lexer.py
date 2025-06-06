@@ -22,15 +22,17 @@ class TOKEN_TYPE(Enum):
     Each member represents a distinct category of lexical element.
     """
 
-    NUMBER = auto()         # Numeric literals (integers and floats)
-    STRING = auto()         # String literals (e.g., "hello", "world")
-    SYMBOL = auto()         # General single-character symbols/operators (e.g., +, -, p)
-    BLOCK_START = auto()    # Opening square bracket for code blocks '['
-    BLOCK_END = auto()      # Closing square bracket for code blocks ']'
-    VAR_GET = auto()        # Indexed variable getter (e.g., v1, v2)
-    VAR_STORE = auto()      # Indexed variable setter (e.g., ->v1, ->v2)
-    ARROW_ASSIGN = auto()   # The '->' operator used for named variable assignment
-    IDENTIFIER = auto()     # Named variables or custom commands (e.g., myVar, count, myFunc)
+    NUMBER = auto()  # Numeric literals (integers and floats)
+    STRING = auto()  # String literals (e.g., "hello", "world")
+    SYMBOL = auto()  # General single-character symbols/operators (e.g., +, -, p)
+    BLOCK_START = auto()  # Opening square bracket for code blocks '['
+    BLOCK_END = auto()  # Closing square bracket for code blocks ']'
+    VAR_GET = auto()  # Indexed variable getter (e.g., v1, v2)
+    VAR_STORE = auto()  # Indexed variable setter (e.g., ->v1, ->v2)
+    ARROW_ASSIGN = auto()  # The '->' operator used for named variable assignment
+    IDENTIFIER = (
+        auto()
+    )  # Named variables or custom commands (e.g., myVar, count, myFunc)
 
 
 class ArslaLexerError(Exception):
@@ -39,6 +41,7 @@ class ArslaLexerError(Exception):
     This custom exception provides specific feedback when the lexer
     encounters malformed syntax or unexpected characters during tokenization.
     """
+
     pass
 
 
@@ -223,7 +226,9 @@ def _tokenize_string(code: str, pos: int) -> Tuple[Token, int]:
     start_pos = pos
     pos += 1  # Move past the opening '"'
     str_chars = []
-    escape = False  # Flag to indicate if the next character is part of an escape sequence
+    escape = (
+        False  # Flag to indicate if the next character is part of an escape sequence
+    )
 
     while pos < len(code):
         char = code[pos]
