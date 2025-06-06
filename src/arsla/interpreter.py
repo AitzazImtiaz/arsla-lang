@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import Token, TOKEN_TYPE  # Import TOKEN_TYPE from lexer
+from .lexer import Token, TOKEN_TYPE
 
 
 Number = Union[int, float]
@@ -35,6 +35,8 @@ class Interpreter:
         self.stack: Stack = []
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
+        # New: Set to store indices of constant stack positions (0-based)
+        self._constants: set[int] = set() 
 
     def _init_commands(self) -> Dict[str, Command]:
         """Initializes and returns a dictionary of available commands.
@@ -50,6 +52,8 @@ class Interpreter:
             cmds[sym] = self._wrap_builtin(fn)
         cmds["W"] = self._wrap_control(self.while_loop)
         cmds["?"] = self._wrap_control(self.ternary)
+        # New: Add the 'c' command for making a stack position constant
+        cmds["c"] = self._wrap_builtin(self.make_constant) 
         return cmds
 
     def _wrap_builtin(self, fn: Callable[[Stack], None]) -> Command:
@@ -135,7 +139,7 @@ class Interpreter:
                     raise ArslaRuntimeError(
                         f"Unexpected token type in AST: {node.type.name} with value {node.value!r}",
                         self.stack.copy(),
-                        "AST",
+                        "AST"
                     )
             elif isinstance(node, (str, int, float, list)):
                 self.stack.append(node)
@@ -143,7 +147,7 @@ class Interpreter:
                 raise ArslaRuntimeError(
                     f"Unexpected AST node: {node!r} (type: {type(node).__name__})",
                     self.stack.copy(),
-                    "AST",
+                    "AST"
                 )
             if self.debug:
                 print(f"Stack after: {self.stack}\n")
@@ -174,7 +178,8 @@ class Interpreter:
 
         Raises:
             ArslaStackUnderflowError: If there's no value on the stack to set.
-            ArslaRuntimeError: If the provided index is invalid (less than 1).
+            ArslaRuntimeError: If the provided index is invalid (less than 1)
+                               or if the target position is a constant.
         """
         value_to_set = self._pop()
 
@@ -184,13 +189,69 @@ class Interpreter:
             raise ArslaRuntimeError(
                 f"Invalid variable index: {index}. Index must be 1 or greater.",
                 self.stack.copy(),
-                f"v{index}",
+                f"v{index}"
+            )
+        
+        # New: Check if the target index is a constant
+        if target_idx in self._constants:
+            # Push back the value that was popped, as we can't set it
+            self.stack.append(value_to_set) 
+            raise ArslaRuntimeError(
+                f"Cannot write to constant position v{index}.",
+                self.stack.copy(),
+                f"v{index}"
             )
 
         while len(self.stack) <= target_idx:
             self.stack.append(0)
 
         self.stack[target_idx] = value_to_set
+
+    def make_constant(self, stack: Stack) -> None:
+        """Marks a stack position as constant.
+
+        Pops the top value from the stack, which must be a positive integer
+        representing the 1-based index to make constant. Once marked,
+        that position cannot be modified by `v<n>` operations.
+
+        Args:
+            stack: The interpreter's stack.
+
+        Raises:
+            ArslaStackUnderflowError: If there's no value on the stack.
+            ArslaRuntimeError: If the popped value is not a positive integer,
+                               or if the index is out of bounds for existing stack.
+        """
+        if not stack:
+            raise ArslaStackUnderflowError(1, 0, stack, "c")
+
+        index_to_const = stack.pop()
+
+        if not isinstance(index_to_const, int) or index_to_const <= 0:
+            raise ArslaRuntimeError(
+                f"Constant 'c' command requires a positive integer index, got {index_to_const!r}.",
+                stack.copy(),
+                "c"
+            )
+        
+        # Convert to 0-based index
+        target_idx = index_to_const - 1
+
+        # While a variable can be set to an index larger than current stack size,
+        # making a position constant should ideally refer to an *existing* position.
+        # This prevents making future, non-existent positions constant.
+        if target_idx >= len(self.stack):
+             raise ArslaRuntimeError(
+                 f"Cannot make non-existent stack position {index_to_const} constant. "
+                 f"Stack only has {len(self.stack)} elements (index {len(self.stack)-1}).",
+                 stack.copy(),
+                 "c"
+             )
+
+        self._constants.add(target_idx)
+        if self.debug:
+            print(f"Marked stack position {target_idx} (v{index_to_const}) as constant.")
+
 
     def while_loop(self) -> None:
         """Executes a block of code repeatedly as long as the top of the stack is truthy.
