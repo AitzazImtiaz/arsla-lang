@@ -51,7 +51,7 @@ class Interpreter:
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
         self._constants: set[int] = set()
-        self._vars: List[Any] = []  # Initialize the variable storage
+        self._vars: List[Any] = [] # Initialize the variable storage (still needed for 'c' and '->v')
 
         self.max_stack_size = max_stack_size
         self.max_stack_memory_bytes = max_stack_memory_bytes
@@ -98,9 +98,7 @@ class Interpreter:
 
         def cmd():
             try:
-                fn(
-                    self.stack
-                )  # Corrected: Call function directly, it modifies self.stack.
+                fn(self.stack)
             except ArslaRuntimeError as e:
                 e.stack_state = self.stack.copy()
                 raise
@@ -194,11 +192,10 @@ class Interpreter:
                     self.stack.append(node.value)
                 elif node.type == TOKEN_TYPE.SYMBOL:
                     self._execute_symbol(node.value)
-                elif (
-                    node.type == TOKEN_TYPE.VAR_GET
-                ):  # Corrected: Handle v<n> as a getter
-                    self._get_variable_value(node.value)
-                elif node.type == TOKEN_TYPE.VAR_STORE:  # Corrected: Handle ->v<n>
+                # MODIFIED: Handling for TOKEN_TYPE.VAR_GET (v<n>)
+                elif node.type == TOKEN_TYPE.VAR_GET:
+                    self._replace_stack_element(node.value) # Call the new method for v<n>
+                elif node.type == TOKEN_TYPE.VAR_STORE:
                     self._store_variable_from_stack(node.value)
                 elif node.type == TOKEN_TYPE.BLOCK_START:
                     block = self._parse_block(node_iterator)
@@ -317,6 +314,52 @@ class Interpreter:
         else:
             raise ArslaRuntimeError(f"Unknown command: {sym}", self.stack.copy(), sym)
 
+    def _replace_stack_element(self, index: int) -> None:
+        """Replaces the element at the specified 1-based stack index with the top of the stack.
+        The original top of the stack is then popped.
+
+        This operation is intended for the `v<n>` syntax.
+
+        Args:
+            index: The 1-based index of the stack element to replace.
+
+        Raises:
+            ArslaStackUnderflowError: If there are fewer than two elements on the stack (one to replace, one to replace with).
+            ArslaRuntimeError: If the provided index is invalid (less than 1 or out of bounds for the current stack size).
+        """
+        if len(self.stack) < 2:
+            raise ArslaStackUnderflowError(
+                2, len(self.stack), self.stack, f"v{index}"
+            )
+
+        target_idx = index - 1 # Convert 1-based to 0-based index
+
+        if target_idx < 0:
+            raise ArslaRuntimeError(
+                f"Invalid stack index: {index}. Index must be 1 or greater.",
+                self.stack.copy(),
+                f"v{index}",
+            )
+        if target_idx >= len(self.stack) -1: # -1 because the top element itself is at len(self.stack) - 1
+            raise ArslaRuntimeError(
+                f"Stack index v{index} out of bounds. Stack has {len(self.stack)} elements (excluding the value to be assigned). "
+                f"Index must be between 1 and {len(self.stack) - 1}.",
+                self.stack.copy(),
+                f"v{index}",
+            )
+
+        value_to_place = self.stack.pop() # Pop the value that will replace the element
+        # value_to_replace_with = self.stack[-1] # This is the value at the top of the stack before the pop.
+        # This means the current top of the stack (value_to_place) is the one we want to assign.
+
+        # Perform the replacement
+        self.stack[target_idx] = value_to_place
+        # The value_to_place was already popped, so no extra pop needed.
+
+        if self.debug:
+            print(f"Replaced stack element at index {index} with {value_to_place!r}.")
+
+
     def _store_variable_from_stack(self, index: int) -> None:
         """Pops the top value from the stack and stores it into the variable at the specified 1-based index.
 
@@ -336,19 +379,20 @@ class Interpreter:
             raise ArslaRuntimeError(
                 f"Invalid variable index: {index}. Index must be 1 or greater for '->v'.",
                 self.stack.copy(),
-                f"->v{index}",
+                f"->v{index}"
             )
         if not self.stack:
             raise ArslaStackUnderflowError(1, 0, self.stack, f"->v{index}")
 
         value_to_assign = self.stack.pop()
 
+        # NOTE: This constant mechanism applies to _vars, not the main stack elements.
         if target_idx in self._constants:
-            self.stack.append(value_to_assign)  # Push back the value if it's a constant
+            self.stack.append(value_to_assign) # Push back the value if it's a constant
             raise ArslaRuntimeError(
-                f"Cannot write to constant position v{index} using '->v'.",
+                f"Cannot write to constant variable v{index} using '->v'.",
                 self.stack.copy(),
-                f"->v{index}",
+                f"->v{index}"
             )
 
         while len(self._vars) <= target_idx:
@@ -356,37 +400,11 @@ class Interpreter:
 
         self._vars[target_idx] = value_to_assign
         if self.debug:
-            print(f"Stored {value_to_assign!r} into v{index} (via ->v operator).")
+            print(f"Stored {value_to_assign!r} into variable v{index} (via ->v operator).")
 
-    def _get_variable_value(self, index: int) -> None:
-        """Retrieves the value of a variable at the specified 1-based index and pushes it onto the stack.
 
-        Args:
-            index: The 1-based index of the variable (e.g., 1 for v1).
-
-        Raises:
-            ArslaRuntimeError: If the provided index is invalid (less than 1)
-                               or if the variable does not exist (index is out of bounds).
-        """
-        target_idx = index - 1
-        if target_idx < 0:
-            raise ArslaRuntimeError(
-                f"Invalid variable index: {index}. Index must be 1 or greater.",
-                self.stack.copy(),
-                f"v{index}",
-            )
-        # If the variable hasn't been assigned yet, treat it as 0
-        if target_idx >= len(self._vars):
-            self.stack.append(0)
-            if self.debug:
-                print(
-                    f"Variable v{index} not found. Pushed default value 0 onto stack."
-                )
-            return
-
-        self.stack.append(self._vars[target_idx])
-        if self.debug:
-            print(f"Pushed value of v{index} ({self._vars[target_idx]!r}) onto stack.")
+    # Removed _get_variable_value as it's no longer used for v<n> based on new behavior.
+    # The 'v<n>' now modifies the stack directly.
 
     def make_constant(self, stack: Stack) -> None:
         """Marks a variable position as constant.
@@ -417,8 +435,11 @@ class Interpreter:
 
         target_idx = index_to_const - 1
 
-        # Check against _vars for existing variable, not stack length
+        # Check against _vars for existing variable (used by ->v, not stack elements)
+        # This 'c' command only makes variables (in _vars) constant, not stack positions.
         if target_idx >= len(self._vars):
+            # Optionally, you might want to auto-extend _vars if making a non-existent var constant
+            # For now, it raises an error if the variable hasn't been touched by ->v yet.
             raise ArslaRuntimeError(
                 f"Cannot make non-existent variable v{index_to_const} constant. "
                 f"Variables only extend to v{len(self._vars)} (index {len(self._vars)-1}).",
@@ -497,9 +518,13 @@ class Interpreter:
             if isinstance(peeked_value, (int, float)) and self._is_truthy(peeked_value):
                 current_loop_state["initial_top_value"] = peeked_value
             else:
-                current_loop_state["initial_top_value"] = "NON_NUMERIC_OR_FALSY"
+                current_loop_state["initial_top_value"] = (
+                    "NON_NUMERIC_OR_FALSY"
+                )
 
-        MAX_NUMERIC_ITERATIONS_WITSET_CHANGE = 1000
+        MAX_NUMERIC_ITERATIONS_WITSET_CHANGE = (
+            1000
+        )
 
         while self._is_truthy(self._peek()):
             current_loop_state["iteration_count"] += 1
