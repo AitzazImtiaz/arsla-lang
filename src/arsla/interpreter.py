@@ -5,14 +5,14 @@ including stack manipulation, command dispatching, and control flow
 operations like while loops and ternary conditionals, and variable assignment.
 """
 
-from typing import Any, Callable, Dict, List, Union
 import sys
 import time  # For tracking execution time
+from typing import Any, Callable, Dict, List, Union
 
 # Assuming these are in the same package or accessible via PYTHONPATH
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import Token, TOKEN_TYPE
+from .lexer import TOKEN_TYPE, Token
 
 # from .parser import Parser # You might not need to import Parser directly here if it's only used in REPL
 
