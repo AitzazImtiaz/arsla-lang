@@ -7,9 +7,20 @@ and converting it into a stream of meaningful tokens.
 import importlib.resources
 import re
 from collections import namedtuple
-from typing import List, Tuple
+from enum import Enum, auto
+from typing import List, Tuple, Union
 
 Token = namedtuple("Token", ["type", "value"])
+
+
+class TOKEN_TYPE(Enum):
+    """Enumeration for different types of tokens in Arsla."""
+    NUMBER = auto()
+    STRING = auto()
+    SYMBOL = auto()
+    BLOCK_START = auto()
+    BLOCK_END = auto()
+    VAR_SETTER = auto()
 
 
 class ArslaLexerError(Exception):
@@ -31,8 +42,12 @@ def _load_symbols(filename="symbols.txt"):
     try:
         data = importlib.resources.read_text(__package__, filename)
     except (FileNotFoundError, ModuleNotFoundError):
-        with open(filename, encoding="utf-8") as f:
-            data = f.read()
+        try:
+            with open(filename, encoding="utf-8") as f:
+                data = f.read()
+        except FileNotFoundError:
+            print(f"Warning: '{filename}' not found. Using default symbol set.")
+            data = "+-*/%&|^~_<>="
     symbols = set(data.strip().split())
     return symbols
 
@@ -42,18 +57,18 @@ SYMBOLS = _load_symbols()
 _NUMBER_RE = re.compile(r"^-?(?:\d+\.?\d*|\.?\d+)(?:[eE][+-]?\d+)?")
 
 
-def tokenize(code: str) -> List[Token]:  # Changed to List[Token]
+def tokenize(code: str) -> List[Token]:
     """Tokenizes Arsla source code.
 
     Args:
         code: The Arsla source code to tokenize (str).
 
     Returns:
-        A list of tokens (list). Returns an empty list if the input code is empty.
+        A list of tokens. Returns an empty list if the input code is empty.
 
     Raises:
-        ArslaLexerError: If an unterminated string, invalid number, or
-                         unexpected character is encountered.
+        ArslaLexerError: If an unterminated string, invalid number,
+                         unexpected character, or invalid variable setter format is encountered.
     """
     tokens = []
     pos = 0
@@ -72,6 +87,21 @@ def tokenize(code: str) -> List[Token]:  # Changed to List[Token]
             pos = new_pos
             continue
 
+        var_setter_match = re.match(r'v(\d+)', code[pos:])
+        if var_setter_match:
+            var_index_str = var_setter_match.group(1)
+            try:
+                var_index = int(var_index_str)
+                tokens.append(Token(TOKEN_TYPE.VAR_SETTER, var_index))
+                pos += len(var_setter_match.group(0))
+                continue
+            except ValueError as exc:
+                raise ArslaLexerError(
+                    f"Invalid variable index '{var_index_str}' at position {pos}. "
+                    "Index must be an integer."
+                ) from exc
+
+
         if char in "-.0123456789":
             token, new_pos = _tokenize_number(code, pos)
             tokens.append(token)
@@ -79,19 +109,31 @@ def tokenize(code: str) -> List[Token]:  # Changed to List[Token]
             continue
 
         if char == "[":
-            tokens.append(Token("BLOCK_START", "["))
+            tokens.append(Token(TOKEN_TYPE.BLOCK_START, "["))
             pos += 1
             continue
 
         if char == "]":
-            tokens.append(Token("BLOCK_END", "]"))
+            tokens.append(Token(TOKEN_TYPE.BLOCK_END, "]"))
             pos += 1
             continue
 
         if char in SYMBOLS:
-            tokens.append(Token("SYMBOL", char))
+            tokens.append(Token(TOKEN_TYPE.SYMBOL, char))
             pos += 1
             continue
+        
+        if char.isalpha() or char in "+-*/%&|^~_<>=":
+            start_pos = pos
+            while pos < length and (code[pos].isalnum() or code[pos] in "+-*/%&|^~_<>="):
+                if re.match(r'v\d+', code[start_pos:pos+1]):
+                     break
+                pos += 1
+            if pos > start_pos and not re.match(r'v\d+', code[start_pos:pos]):
+                symbol_value = code[start_pos:pos]
+                tokens.append(Token(TOKEN_TYPE.SYMBOL, symbol_value))
+                continue
+
 
         raise ArslaLexerError(f"Unexpected character '{char}' at position {pos}")
     return tokens
@@ -99,7 +141,7 @@ def tokenize(code: str) -> List[Token]:  # Changed to List[Token]
 
 def _tokenize_string(
     code: str, pos: int
-) -> Tuple[Token, int]:  # Changed to Tuple[Token, int]
+) -> Tuple[Token, int]:
     """Helper to tokenize a string literal.
 
     Args:
@@ -137,7 +179,7 @@ def _tokenize_string(
             escape = True
         elif char == '"':
             pos += 1
-            return Token("STRING", "".join(str_chars)), pos
+            return Token(TOKEN_TYPE.STRING, "".join(str_chars)), pos
         else:
             str_chars.append(char)
         pos += 1
@@ -147,7 +189,7 @@ def _tokenize_string(
 
 def _tokenize_number(
     code: str, pos: int
-) -> Tuple[Token, int]:  # Changed to Tuple[Token, int]
+) -> Tuple[Token, int]:
     """Helper to tokenize a number literal.
 
     Args:
@@ -173,7 +215,7 @@ def _tokenize_number(
             num = float(num_str)
         else:
             num = int(num_str)
-        return Token("NUMBER", num), pos + len(num_str)
+        return Token(TOKEN_TYPE.NUMBER, num), pos + len(num_str)
     except ValueError as exc:
         raise ArslaLexerError(
             f"Invalid number format: '{num_str}' at position {pos}"
