@@ -9,7 +9,8 @@ from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import TOKEN_TYPE, Token
+from .lexer import Token, TOKEN_TYPE
+
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -34,7 +35,6 @@ class Interpreter:
         self.stack: Stack = []
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
-        # New: Set to store indices of constant stack positions (0-based)
         self._constants: set[int] = set()
 
     def _init_commands(self) -> Dict[str, Command]:
@@ -51,7 +51,6 @@ class Interpreter:
             cmds[sym] = self._wrap_builtin(fn)
         cmds["W"] = self._wrap_control(self.while_loop)
         cmds["?"] = self._wrap_control(self.ternary)
-        # New: Add the 'c' command for making a stack position constant
         cmds["c"] = self._wrap_builtin(self.make_constant)
         return cmds
 
@@ -133,7 +132,13 @@ class Interpreter:
                 elif node.type == TOKEN_TYPE.NUMBER or node.type == TOKEN_TYPE.STRING:
                     self.stack.append(node.value)
                 elif node.type in (TOKEN_TYPE.BLOCK_START, TOKEN_TYPE.BLOCK_END):
-                    self.stack.append(node.value)
+                    # We need to parse blocks here too, not just push tokens
+                    # This indicates an issue in `run` if blocks are expected as lists
+                    # and not parsed within this loop. Assuming `_execute_nodes` is meant
+                    # to handle block parsing for nested execution, and `run` is top-level.
+                    # The original `run` was a simple loop, `_execute_nodes` now handles parsing.
+                    # Let's adjust `run` to call `_execute_nodes` for the top-level AST.
+                    pass # This branch should ideally not be reached if lexer/parser are correct.
                 else:
                     raise ArslaRuntimeError(
                         f"Unexpected token type in AST: {node.type.name} with value {node.value!r}",
@@ -150,6 +155,113 @@ class Interpreter:
                 )
             if self.debug:
                 print(f"Stack after: {self.stack}\n")
+
+
+    # Correcting `run` to use `_execute_nodes` for proper block parsing
+    def run(self, ast: List[Any]) -> None:
+        """Executes the given Abstract Syntax Tree (AST).
+
+        This is the main entry point for executing a program. It initializes
+        an iterator over the AST nodes and begins execution.
+
+        Args:
+            ast: A list of nodes representing the flat AST from the lexer.
+                 Block delimiters `[` and `]` are handled by the interpreter.
+
+        Raises:
+            ArslaRuntimeError: If an unknown command symbol is encountered,
+                an unexpected AST node type is found, an error occurs during
+                variable assignment, or block parsing fails.
+        """
+        program_iterator = iter(ast)
+        self._execute_nodes(program_iterator)
+
+
+    def _execute_nodes(self, node_iterator: Any) -> None:
+        """Internal method to process nodes from an iterator (either main AST or a block).
+
+        Args:
+            node_iterator: An iterator yielding `Token` objects or raw literals.
+        """
+        while True:
+            try:
+                node = next(node_iterator)
+            except StopIteration:
+                return
+
+            if self.debug:
+                print(f"Node: {node!r}, Stack before: {self.stack}")
+
+            if isinstance(node, Token):
+                if node.type == TOKEN_TYPE.NUMBER or node.type == TOKEN_TYPE.STRING:
+                    self.stack.append(node.value)
+                elif node.type == TOKEN_TYPE.SYMBOL:
+                    self._execute_symbol(node.value)
+                elif node.type == TOKEN_TYPE.VAR_SETTER:
+                    self._set_variable(node.value)
+                elif node.type == TOKEN_TYPE.BLOCK_START:
+                    block = self._parse_block(node_iterator)
+                    self.stack.append(block)
+                elif node.type == TOKEN_TYPE.BLOCK_END:
+                    raise ArslaRuntimeError(
+                        "Unmatched ']' encountered.", self.stack.copy(), "]"
+                    )
+                else:
+                    raise ArslaRuntimeError(
+                        f"Unexpected token type: {node.type.name} with value {node.value!r}",
+                        self.stack.copy(),
+                        "AST"
+                    )
+            elif isinstance(node, (str, int, float, list)):
+                self.stack.append(node)
+            else:
+                raise ArslaRuntimeError(
+                    f"Unexpected AST node: {node!r} (type: {type(node).__name__})",
+                    self.stack.copy(),
+                    "AST"
+                )
+
+            if self.debug:
+                print(f"Stack after: {self.stack}\n")
+
+    def _parse_block(self, node_iterator: Any) -> list:
+        """Collects tokens into a list until a matching BLOCK_END token is found.
+
+        Args:
+            node_iterator: The current iterator over the AST nodes.
+
+        Returns:
+            A list representing the parsed code block.
+
+        Raises:
+            ArslaRuntimeError: If an unterminated block is found (no matching ']').
+        """
+        block_content = []
+        while True:
+            try:
+                node = next(node_iterator)
+            except StopIteration:
+                raise ArslaRuntimeError(
+                    "Unterminated block: Expected ']' but end of program reached.",
+                    self.stack.copy(),
+                    "["
+                )
+
+            if isinstance(node, Token):
+                if node.type == TOKEN_TYPE.BLOCK_START:
+                    block_content.append(self._parse_block(node_iterator))
+                elif node.type == TOKEN_TYPE.BLOCK_END:
+                    return block_content
+                else:
+                    block_content.append(node)
+            elif isinstance(node, (str, int, float, list)):
+                block_content.append(node)
+            else:
+                raise ArslaRuntimeError(
+                    f"Unexpected AST node within block: {node!r} (type: {type(node).__name__})",
+                    self.stack.copy(),
+                    "AST"
+                )
 
     def _execute_symbol(self, sym: str) -> None:
         """Executes a command corresponding to a given symbol.
@@ -190,10 +302,8 @@ class Interpreter:
                 self.stack.copy(),
                 f"v{index}"
             )
-
-        # New: Check if the target index is a constant
+        
         if target_idx in self._constants:
-            # Push back the value that was popped, as we can't set it
             self.stack.append(value_to_set)
             raise ArslaRuntimeError(
                 f"Cannot write to constant position v{index}.",
@@ -232,13 +342,9 @@ class Interpreter:
                 stack.copy(),
                 "c"
             )
-
-        # Convert to 0-based index
+        
         target_idx = index_to_const - 1
 
-        # While a variable can be set to an index larger than current stack size,
-        # making a position constant should ideally refer to an *existing* position.
-        # This prevents making future, non-existent positions constant.
         if target_idx >= len(self.stack):
              raise ArslaRuntimeError(
                  f"Cannot make non-existent stack position {index_to_const} constant. "
@@ -253,24 +359,26 @@ class Interpreter:
 
 
     def while_loop(self) -> None:
-        """Executes a block of code repeatedly as long as the top of the stack is truthy.
+        """Executes a block of code repeatedly as long as the value at the top of the stack is truthy.
 
-        The top element on the stack is expected to be a list (the code block).
-        The element below it serves as the initial condition.
-        The loop continues as long as the value at the **top of the stack**
-        remains truthy *before* each iteration of the block.
-        The block itself is responsible for modifying the stack in a way that
-        eventually leads to a falsy value at the top for termination;
-        otherwise, the loop will run infinitely.
+        Expects one element on the stack:
+        1.  `body_block`: A list representing the code to execute in each iteration.
+
+        The loop's condition is determined by the truthiness of the value at the
+        **top of the stack**. The `body_block` is responsible for pushing a new
+        value onto the stack (or modifying an existing one) that will serve as the
+        condition for the *next* iteration. If the stack is empty, 0 (falsy) is assumed.
 
         Raises:
-            ArslaRuntimeError: If the stack does not contain a list for the block.
-            ArslaStackUnderflowError: If there are not enough elements on the stack.
+            ArslaRuntimeError: If the stack does not contain a list for the body block.
+            ArslaStackUnderflowError: If there are not enough elements on the stack initially
+                                      to pop the body block.
         """
-        block = self._pop_list()
+        body_block = self._pop_list()
 
         while self._is_truthy(self._peek()):
-            self.run(block)
+            self._execute_nodes(iter(body_block))
+
 
     def ternary(self) -> None:
         """Executes one of two code blocks based on a boolean condition.
@@ -290,9 +398,9 @@ class Interpreter:
         true_block = self._pop_list()
         cond = self._pop()
         if self._is_truthy(cond):
-            self.run(true_block)
+            self._execute_nodes(iter(true_block))
         else:
-            self.run(false_block)
+            self._execute_nodes(iter(false_block))
 
     def _pop(self) -> Atom:
         """Removes and returns the top element from the stack.
