@@ -21,5 +21,6 @@ e
 d
 VAR_GET
 VAR_ASSIGN
+VAR_STORE
 mc
 c
