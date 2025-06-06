@@ -226,10 +226,7 @@ class Interpreter:
                             self.stack.copy(),
                             "->",
                         )
-                    if not (
-                        isinstance(identifier_node, Token)
-                        and identifier_node.type == TOKEN_TYPE.IDENTIFIER
-                    ):
+                    if not (isinstance(identifier_node, Token) and identifier_node.type == TOKEN_TYPE.IDENTIFIER):
                         raise ArslaRuntimeError(
                             f"Expected identifier after '->' operator, got {identifier_node.type.name} with value {identifier_node.value!r}",
                             self.stack.copy(),
@@ -365,7 +362,7 @@ class Interpreter:
         Raises:
             ArslaStackUnderflowError: If there are fewer than two elements on the stack (one to replace, one to replace with).
             ArslaRuntimeError: If the provided index is invalid (less than 1 or out of bounds for the current stack size)
-                                or if the target stack position is constant.
+                               or if the target stack position is constant.
         """
         if len(self.stack) < 2:
             raise ArslaStackUnderflowError(2, len(self.stack), self.stack, f"v{index}")
@@ -383,19 +380,17 @@ class Interpreter:
 
         # Now, check against the *remaining* stack elements after popping the value to be placed
         if target_idx >= len(self.stack):
-            self.stack.append(value_to_place)  # Put it back before raising error
+            self.stack.append(value_to_place) # Put it back before raising error
             raise ArslaRuntimeError(
                 f"Stack index v{index} out of bounds. Stack has {len(self.stack)} elements (after popping assigner). "
-                f"Index must be between 1 and {len(self.stack)}.",  # Adjusted for 1-based indexing
+                f"Index must be between 1 and {len(self.stack)}.", # Adjusted for 1-based indexing
                 self.stack.copy(),
                 f"v{index}",
             )
 
         # Check if the target stack position is constant
         if target_idx in self._stack_position_constants:
-            self.stack.append(
-                value_to_place
-            )  # We pop the value to be placed, then re-append it as the operation is illegal
+            self.stack.append(value_to_place)  # We pop the value to be placed, then re-append it as the operation is illegal
             raise ArslaRuntimeError(
                 f"Cannot modify constant stack element at position {index} (via v{index}).",
                 self.stack.copy(),
@@ -444,9 +439,7 @@ class Interpreter:
             )
         self.stack.append(self._named_vars[name])
         if self.debug:
-            print(
-                f"Pushed value of named variable '{name}': {self._named_vars[name]!r}"
-            )
+            print(f"Pushed value of named variable '{name}': {self._named_vars[name]!r}")
 
     def _store_named_variable(self, name: str) -> None:
         """Pops the top value from the stack and stores it into the specified named variable.
@@ -466,7 +459,7 @@ class Interpreter:
         value_to_assign = self.stack.pop()
 
         if name in self._named_var_constants:
-            self.stack.append(value_to_assign)  # Push back the value if it's a constant
+            self.stack.append(value_to_assign) # Push back the value if it's a constant
             raise ArslaRuntimeError(
                 f"Cannot write to constant variable '{name}' using '->{name}'.",
                 self.stack.copy(),
@@ -514,7 +507,7 @@ class Interpreter:
 
         # Extend _indexed_vars list if needed
         while len(self._indexed_vars) <= target_idx:
-            self._indexed_vars.append(0)  # Default value for new variables
+            self._indexed_vars.append(0) # Default value for new variables
 
         self._indexed_vars[target_idx] = value_to_assign
         if self.debug:
@@ -622,31 +615,28 @@ class Interpreter:
             print(f"Maximum stack capacity (item count) set to: {self.max_stack_size}")
 
     def while_loop(self) -> None:
-        """Executes a block of code repeatedly as long as the value at the top of the stack is truthy.
+        """Executes a block of code repeatedly as long as the evaluation of a condition block is truthy.
 
-        Expects one element on the stack:
-        1. `body_block`: A list representing the code to execute in each iteration.
-
-        The loop's condition is determined by the truthiness of the value at the
-        **top of the stack**. The `body_block` is responsible for pushing a new
-        value onto the stack (or modifying an existing one) that will serve as the
-        condition for the *next* iteration. If the stack is empty, 0 (falsy) is assumed.
+        Expects two elements on the stack (from top to bottom):
+        1. `body_block`: A list representing the code to execute in each iteration if the condition is true.
+        2. `condition_block`: A list representing the code to execute to produce the loop condition.
+                            This block should leave a single value on the stack that will be evaluated for truthiness.
 
         Raises:
-            ArslaRuntimeError: If the stack does not contain a list for the body block,
+            ArslaRuntimeError: If `body_block` or `condition_block` are not lists,
                                or if the loop appears to be non-terminating due to a
                                constant non-zero numeric condition or excessive stack growth/memory usage,
                                or if overall execution time limit is exceeded.
-            ArslaStackUnderflowError: If there are not enough elements on the stack initially
-                                       to pop the body block.
+            ArslaStackUnderflowError: If there are fewer than two elements on the stack.
         """
-        # Ensure there's at least one item (the body block) on the stack
-        if len(self.stack) < 1:
-            raise ArslaStackUnderflowError(1, len(self.stack), self.stack, "W")
+        # Ensure there are at least two items (body block and condition block) on the stack
+        if len(self.stack) < 2:
+            raise ArslaStackUnderflowError(2, len(self.stack), self.stack, "W")
 
-        body_block = self._pop_list(context="W")  # Pass 'W' as context
+        body_block = self._pop_list(context="W (body block)")
+        condition_block = self._pop_list(context="W (condition block)")
 
-        loop_id = id(body_block)
+        loop_id = id(condition_block) # Using condition_block's ID for state tracking
 
         if loop_id not in self._while_loop_state:
             self._while_loop_state[loop_id] = {
@@ -659,13 +649,25 @@ class Interpreter:
         # Max iterations without a numeric condition change to detect infinite loops
         MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE = 1000
 
-        while self._is_truthy(self._peek()):
-            current_loop_state["iteration_count"] += 1
+        while True:
+            # 1. Execute the condition block
+            if self.debug:
+                print(f"While loop (ID: {loop_id}) executing condition block...")
+            self._execute_nodes(iter(condition_block))
+
+            # 2. Check the result of the condition block (top of stack)
+            condition_result = self._peek() # Peek, don't pop, as it might be used by body
+            is_truthy = self._is_truthy(condition_result)
 
             if self.debug:
                 print(
-                    f"While loop (ID: {loop_id}) iteration {current_loop_state['iteration_count']}. Condition: {self._peek()}"
+                    f"While loop (ID: {loop_id}) iteration {current_loop_state['iteration_count'] + 1}. Condition Result: {condition_result!r}, Truthy: {is_truthy}"
                 )
+
+            if not is_truthy:
+                break # Condition is false, exit loop
+
+            current_loop_state["iteration_count"] += 1
 
             if time.time() - self._start_time > self.max_execution_time_seconds:
                 raise ArslaRuntimeError(
@@ -675,27 +677,26 @@ class Interpreter:
                 )
 
             # Check for infinite numeric loop
+            # This check applies to the result of the condition_block
             if current_loop_state["initial_top_value"] is None:
-                peeked_value = self._peek()
-                if isinstance(peeked_value, (int, float)) and self._is_truthy(
-                    peeked_value
-                ):
-                    current_loop_state["initial_top_value"] = peeked_value
+                if isinstance(condition_result, (int, float)) and self._is_truthy(condition_result):
+                    current_loop_state["initial_top_value"] = condition_result
                 else:
                     current_loop_state["initial_top_value"] = "NON_NUMERIC_OR_FALSY"
-            elif current_loop_state["initial_top_value"] != "NON_NUMERIC_OR_FALSY":
-                current_top = self._peek()
+            elif (
+                current_loop_state["initial_top_value"] != "NON_NUMERIC_OR_FALSY"
+            ):
                 if (
-                    isinstance(current_top, (int, float))
-                    and self._is_truthy(current_top)
-                    and current_top == current_loop_state["initial_top_value"]
+                    isinstance(condition_result, (int, float))
+                    and self._is_truthy(condition_result)
+                    and condition_result == current_loop_state["initial_top_value"]
                 ):
                     if (
                         current_loop_state["iteration_count"]
                         > MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE
                     ):
                         raise ArslaRuntimeError(
-                            f"Infinite loop detected: Numeric condition '{current_top}' "
+                            f"Infinite loop detected: Numeric condition '{condition_result}' "
                             f"remained unchanged for over {MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE} iterations. "
                             f"Expected termination (e.g., reaching 0 or changing value/type).",
                             self.stack.copy(),
@@ -705,6 +706,9 @@ class Interpreter:
                     # Condition changed or became non-numeric/falsy, reset tracking
                     current_loop_state["initial_top_value"] = "NON_NUMERIC_OR_FALSY"
 
+            # 3. Execute the body block
+            if self.debug:
+                print(f"While loop (ID: {loop_id}) executing body block...")
             self._execute_nodes(iter(body_block))
 
         if loop_id in self._while_loop_state:
@@ -724,10 +728,10 @@ class Interpreter:
             ArslaRuntimeError: If `true_block` or `false_block` are not lists.
             ArslaStackUnderflowError: If there are fewer than three elements on the stack.
         """
-        if len(self.stack) < 3:  # Explicit check for required elements
+        if len(self.stack) < 3: # Explicit check for required elements
             raise ArslaStackUnderflowError(3, len(self.stack), self.stack, "?")
 
-        false_block = self._pop_list(context="?")  # Pass '?' as context
+        false_block = self._pop_list(context="?") # Pass '?' as context
         true_block = self._pop_list(context="?")  # Pass '?' as context
         cond = self._pop()
         if self._is_truthy(cond):
@@ -773,11 +777,7 @@ class Interpreter:
         """
         item = self._pop()
         if not isinstance(item, list):
-            raise ArslaRuntimeError(
-                f"Expected a code block (list), but found {type(item).__name__} with value {item!r}.",
-                self.stack.copy(),
-                context,
-            )
+            raise ArslaRuntimeError(f"Expected a code block (list), but found {type(item).__name__} with value {item!r}.", self.stack.copy(), context)
         return item
 
     def _is_truthy(self, val: Atom) -> bool:
