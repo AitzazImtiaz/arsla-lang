@@ -15,6 +15,7 @@ Token = namedtuple("Token", ["type", "value"])
 
 class TOKEN_TYPE(Enum):
     """Enumeration for different types of tokens in Arsla."""
+
     NUMBER = auto()
     STRING = auto()
     SYMBOL = auto()
@@ -87,7 +88,7 @@ def tokenize(code: str) -> List[Token]:
             pos = new_pos
             continue
 
-        var_setter_match = re.match(r'v(\d+)', code[pos:])
+        var_setter_match = re.match(r"v(\d+)", code[pos:])
         if var_setter_match:
             var_index_str = var_setter_match.group(1)
             try:
@@ -100,7 +101,6 @@ def tokenize(code: str) -> List[Token]:
                     f"Invalid variable index '{var_index_str}' at position {pos}. "
                     "Index must be an integer."
                 ) from exc
-
 
         if char in "-.0123456789":
             token, new_pos = _tokenize_number(code, pos)
@@ -122,26 +122,25 @@ def tokenize(code: str) -> List[Token]:
             tokens.append(Token(TOKEN_TYPE.SYMBOL, char))
             pos += 1
             continue
-        
+
         if char.isalpha() or char in "+-*/%&|^~_<>=":
             start_pos = pos
-            while pos < length and (code[pos].isalnum() or code[pos] in "+-*/%&|^~_<>="):
-                if re.match(r'v\d+', code[start_pos:pos+1]):
-                     break
+            while pos < length and (
+                code[pos].isalnum() or code[pos] in "+-*/%&|^~_<>="
+            ):
+                if re.match(r"v\d+", code[start_pos : pos + 1]):
+                    break
                 pos += 1
-            if pos > start_pos and not re.match(r'v\d+', code[start_pos:pos]):
+            if pos > start_pos and not re.match(r"v\d+", code[start_pos:pos]):
                 symbol_value = code[start_pos:pos]
                 tokens.append(Token(TOKEN_TYPE.SYMBOL, symbol_value))
                 continue
-
 
         raise ArslaLexerError(f"Unexpected character '{char}' at position {pos}")
     return tokens
 
 
-def _tokenize_string(
-    code: str, pos: int
-) -> Tuple[Token, int]:
+def _tokenize_string(code: str, pos: int) -> Tuple[Token, int]:
     """Helper to tokenize a string literal.
 
     Args:
@@ -187,9 +186,7 @@ def _tokenize_string(
     raise ArslaLexerError(f"Unterminated string starting at position {start_pos}")
 
 
-def _tokenize_number(
-    code: str, pos: int
-) -> Tuple[Token, int]:
+def _tokenize_number(code: str, pos: int) -> Tuple[Token, int]:
     """Helper to tokenize a number literal.
 
     Args:
