@@ -302,7 +302,7 @@ class Interpreter:
                     for item in raw_block:
                         if isinstance(item, Token) and item.type in (
                             TOKEN_TYPE.NUMBER,
-                            TOKEN_TYPE.STRING
+                            TOKEN_TYPE.STRING,
                         ):
                             literal.append(item.value)
                         else:
@@ -314,20 +314,19 @@ class Interpreter:
                         raise ArslaRuntimeError(
                             f"Stack overflow (item count): cannot push block as it would exceed current maximum stack size of {self.max_stack_size} items.",
                             self.stack.copy(),
-                            "stack_limit_items"
+                            "stack_limit_items",
                         )
 
                     # Enforce stack memory limit
-                    current_stack_memory = (
-                        sum(sys.getsizeof(item) for item in self.stack)
-                        + sys.getsizeof(block)
-                    )
+                    current_stack_memory = sum(
+                        sys.getsizeof(item) for item in self.stack
+                    ) + sys.getsizeof(block)
                     if current_stack_memory > self.max_stack_memory_bytes:
                         raise ArslaRuntimeError(
                             f"Stack overflow (memory): cannot push block as it would exceed maximum stack memory of {self.max_stack_memory_bytes / (1024*1024):.2f} MB. "
                             f"Current usage: {current_stack_memory / (1024*1024):.2f} MB.",
                             self.stack.copy(),
-                            "stack_limit_memory"
+                            "stack_limit_memory",
                         )
 
                     # Push the fresh literal onto the stack
