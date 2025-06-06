@@ -11,7 +11,10 @@ from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import TOKEN_TYPE, Token # Assuming TOKEN_TYPE will gain IDENTIFIER and ARROW_ASSIGN
+from .lexer import (  # Assuming TOKEN_TYPE will gain IDENTIFIER and ARROW_ASSIGN
+    TOKEN_TYPE,
+    Token,
+)
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -49,7 +52,7 @@ class Interpreter:
         self.stack: Stack = []
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
-        
+
         # Original indexed variables (for v<n> and ->v<n> syntax)
         self._indexed_vars: List[Any] = []
         # Constants for indexed variables (e.g., c 1 for v1)
@@ -86,7 +89,7 @@ class Interpreter:
         cmds["W"] = self._wrap_control(self.while_loop)
         cmds["?"] = self._wrap_control(self.ternary)
         # 'c' command is now much more complex, handled by make_constant
-        cmds["c"] = self._wrap_builtin(self.make_constant) 
+        cmds["c"] = self._wrap_builtin(self.make_constant)
         cmds["mc"] = self._wrap_builtin(self.set_max_capacity)
         return cmds
 
@@ -382,7 +385,7 @@ class Interpreter:
                 self.stack.copy(),
                 f"v{index}",
             )
-        
+
         # Check against the *remaining* stack elements after popping the value to be placed
         if target_idx >= len(self.stack) - 1:
              raise ArslaRuntimeError(
@@ -418,7 +421,7 @@ class Interpreter:
                 self.stack.copy(),
                 name,
             )
-        
+
         if len(self.stack) >= self.max_stack_size:
             raise ArslaRuntimeError(
                 f"Stack overflow (item count): cannot push variable value {self._named_vars[name]!r} as it would exceed current maximum stack size of {self.max_stack_size} items.",
@@ -556,7 +559,7 @@ class Interpreter:
             # while larger ones (if you had many) might be var indices.
             # For simplicity, we'll assume if it's a valid stack index, it applies to the stack.
             # Otherwise, it applies to an indexed variable.
-            
+
             target_idx_0_based = item_to_const - 1
 
             if target_idx_0_based < 0:
@@ -565,7 +568,7 @@ class Interpreter:
                     stack.copy(),
                     "c",
                 )
-            
+
             # Check if it's a valid *current* stack position (after 'c' itself was popped)
             # If the index is within the current stack bounds, assume it's a stack position constant
             if target_idx_0_based < len(stack):
