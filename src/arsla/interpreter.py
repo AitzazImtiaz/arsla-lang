@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import TOKEN_TYPE, Token
+from .lexer import TOKEN_TYPE, Token # Assuming TOKEN_TYPE will gain IDENTIFIER and ARROW_ASSIGN
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -49,10 +49,19 @@ class Interpreter:
         self.stack: Stack = []
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
-        self._constants: set[int] = set()
-        self._vars: List[Any] = (
-            []
-        )  # Initialize the variable storage (still needed for 'c' and '->v')
+        
+        # Original indexed variables (for v<n> and ->v<n> syntax)
+        self._indexed_vars: List[Any] = []
+        # Constants for indexed variables (e.g., c 1 for v1)
+        self._indexed_var_constants: set[int] = set()
+
+        # New: Named variables (for identifier and -> identifier syntax)
+        self._named_vars: Dict[str, Any] = {}
+        # New: Constants for named variables (e.g., "my_var" c)
+        self._named_var_constants: set[str] = set()
+
+        # New: Constants for specific stack positions (e.g., 3 c)
+        self._stack_position_constants: set[int] = set()
 
         self.max_stack_size = max_stack_size
         self.max_stack_memory_bytes = max_stack_memory_bytes
@@ -76,7 +85,8 @@ class Interpreter:
             cmds[sym] = self._wrap_builtin(fn)
         cmds["W"] = self._wrap_control(self.while_loop)
         cmds["?"] = self._wrap_control(self.ternary)
-        cmds["c"] = self._wrap_builtin(self.make_constant)
+        # 'c' command is now much more complex, handled by make_constant
+        cmds["c"] = self._wrap_builtin(self.make_constant) 
         cmds["mc"] = self._wrap_builtin(self.set_max_capacity)
         return cmds
 
@@ -193,13 +203,33 @@ class Interpreter:
                     self.stack.append(node.value)
                 elif node.type == TOKEN_TYPE.SYMBOL:
                     self._execute_symbol(node.value)
-                # MODIFIED: Handling for TOKEN_TYPE.VAR_GET (v<n>)
+                # Handle `v<n>` which replaces a stack element
                 elif node.type == TOKEN_TYPE.VAR_GET:
-                    self._replace_stack_element(
-                        node.value
-                    )  # Call the new method for v<n>
+                    self._replace_stack_element(node.value)
+                # Handle `->v<n>` for indexed variable assignment
                 elif node.type == TOKEN_TYPE.VAR_STORE:
-                    self._store_variable_from_stack(node.value)
+                    self._store_indexed_variable(node.value)
+                # NEW: Handle `identifier` for retrieving named variable
+                elif node.type == TOKEN_TYPE.IDENTIFIER:
+                    self._get_named_variable(node.value)
+                # NEW: Handle `->` operator for named variable assignment
+                elif node.type == TOKEN_TYPE.ARROW_ASSIGN:
+                    # After '->', the next token *must* be an identifier
+                    try:
+                        identifier_node = next(node_iterator)
+                    except StopIteration:
+                        raise ArslaRuntimeError(
+                            "Expected identifier after '->' operator, but end of program reached.",
+                            self.stack.copy(),
+                            "->",
+                        )
+                    if not (isinstance(identifier_node, Token) and identifier_node.type == TOKEN_TYPE.IDENTIFIER):
+                        raise ArslaRuntimeError(
+                            f"Expected identifier after '->' operator, got {identifier_node.type.name} with value {identifier_node.value!r}",
+                            self.stack.copy(),
+                            "->",
+                        )
+                    self._store_named_variable(identifier_node.value)
                 elif node.type == TOKEN_TYPE.BLOCK_START:
                     block = self._parse_block(node_iterator)
                     if len(self.stack) >= self.max_stack_size:
@@ -328,7 +358,8 @@ class Interpreter:
 
         Raises:
             ArslaStackUnderflowError: If there are fewer than two elements on the stack (one to replace, one to replace with).
-            ArslaRuntimeError: If the provided index is invalid (less than 1 or out of bounds for the current stack size).
+            ArslaRuntimeError: If the provided index is invalid (less than 1 or out of bounds for the current stack size)
+                               or if the target stack position is constant.
         """
         if len(self.stack) < 2:
             raise ArslaStackUnderflowError(2, len(self.stack), self.stack, f"v{index}")
@@ -341,29 +372,104 @@ class Interpreter:
                 self.stack.copy(),
                 f"v{index}",
             )
-        if (
-            target_idx >= len(self.stack) - 1
-        ):  # -1 because the top element itself is at len(self.stack) - 1
+        # Check if the target stack position is constant
+        if target_idx in self._stack_position_constants:
+            # We pop the value to be placed, then re-append it as the operation is illegal
+            value_to_place_back = self.stack.pop()
+            self.stack.append(value_to_place_back)
             raise ArslaRuntimeError(
+                f"Cannot modify constant stack element at position {index} (via v{index}).",
+                self.stack.copy(),
+                f"v{index}",
+            )
+        
+        # Check against the *remaining* stack elements after popping the value to be placed
+        if target_idx >= len(self.stack) - 1:
+             raise ArslaRuntimeError(
                 f"Stack index v{index} out of bounds. Stack has {len(self.stack)} elements (excluding the value to be assigned). "
                 f"Index must be between 1 and {len(self.stack) - 1}.",
                 self.stack.copy(),
                 f"v{index}",
             )
 
+
         value_to_place = self.stack.pop()  # Pop the value that will replace the element
-        # value_to_replace_with = self.stack[-1] # This is the value at the top of the stack before the pop.
-        # This means the current top of the stack (value_to_place) is the one we want to assign.
 
         # Perform the replacement
         self.stack[target_idx] = value_to_place
-        # The value_to_place was already popped, so no extra pop needed.
 
         if self.debug:
             print(f"Replaced stack element at index {index} with {value_to_place!r}.")
 
-    def _store_variable_from_stack(self, index: int) -> None:
-        """Pops the top value from the stack and stores it into the variable at the specified 1-based index.
+    def _get_named_variable(self, name: str) -> None:
+        """Retrieves the value of a named variable and pushes it onto the stack.
+
+        This operation is intended for the `identifier` syntax when used as a getter.
+
+        Args:
+            name: The string name of the variable to retrieve.
+
+        Raises:
+            ArslaRuntimeError: If the named variable has not been assigned a value.
+        """
+        if name not in self._named_vars:
+            raise ArslaRuntimeError(
+                f"Undefined variable '{name}'. Assign a value using 'value ->{name}' first.",
+                self.stack.copy(),
+                name,
+            )
+        
+        if len(self.stack) >= self.max_stack_size:
+            raise ArslaRuntimeError(
+                f"Stack overflow (item count): cannot push variable value {self._named_vars[name]!r} as it would exceed current maximum stack size of {self.max_stack_size} items.",
+                self.stack.copy(),
+                "stack_limit_items",
+            )
+        current_stack_memory = sum(
+            sys.getsizeof(item) for item in self.stack
+        ) + sys.getsizeof(self._named_vars[name])
+        if current_stack_memory > self.max_stack_memory_bytes:
+            raise ArslaRuntimeError(
+                f"Stack overflow (memory): cannot push variable value {self._named_vars[name]!r} as it would exceed maximum stack memory of {self.max_stack_memory_bytes / (1024*1024):.2f} MB. "
+                f"Current usage: {current_stack_memory / (1024*1024):.2f} MB.",
+                self.stack.copy(),
+                "stack_limit_memory",
+            )
+        self.stack.append(self._named_vars[name])
+        if self.debug:
+            print(f"Pushed value of named variable '{name}': {self._named_vars[name]!r}")
+
+    def _store_named_variable(self, name: str) -> None:
+        """Pops the top value from the stack and stores it into the specified named variable.
+
+        This operation is associated with the `->identifier` syntax.
+
+        Args:
+            name: The string name of the variable to store the value in.
+
+        Raises:
+            ArslaStackUnderflowError: If there's no value on the stack to store.
+            ArslaRuntimeError: If the target named variable is constant.
+        """
+        if not self.stack:
+            raise ArslaStackUnderflowError(1, 0, self.stack, f"->{name}")
+
+        value_to_assign = self.stack.pop()
+
+        if name in self._named_var_constants:
+            self.stack.append(value_to_assign) # Push back the value if it's a constant
+            raise ArslaRuntimeError(
+                f"Cannot write to constant variable '{name}' using '->{name}'.",
+                self.stack.copy(),
+                f"->{name}",
+            )
+
+        self._named_vars[name] = value_to_assign
+        if self.debug:
+            print(f"Stored {value_to_assign!r} into named variable '{name}'.")
+
+    def _store_indexed_variable(self, index: int) -> None:
+        """Pops the top value from the stack and stores it into the indexed variable at the specified 1-based index.
 
         This operation is associated with the `->v<n>` syntax.
 
@@ -373,7 +479,7 @@ class Interpreter:
         Raises:
             ArslaStackUnderflowError: If there's no value on the stack to store.
             ArslaRuntimeError: If the provided index is invalid (less than 1)
-                               or if the target position is a constant.
+                               or if the target indexed variable is constant.
         """
         target_idx = index - 1
 
@@ -388,72 +494,110 @@ class Interpreter:
 
         value_to_assign = self.stack.pop()
 
-        # NOTE: This constant mechanism applies to _vars, not the main stack elements.
-        if target_idx in self._constants:
+        # Check if this specific indexed variable is constant
+        if target_idx in self._indexed_var_constants:
             self.stack.append(value_to_assign)  # Push back the value if it's a constant
             raise ArslaRuntimeError(
-                f"Cannot write to constant variable v{index} using '->v'.",
+                f"Cannot write to constant indexed variable v{index} using '->v'.",
                 self.stack.copy(),
                 f"->v{index}",
             )
 
-        while len(self._vars) <= target_idx:
-            self._vars.append(0)
+        # Extend _indexed_vars list if needed
+        while len(self._indexed_vars) <= target_idx:
+            self._indexed_vars.append(0) # Default value for new variables
 
-        self._vars[target_idx] = value_to_assign
+        self._indexed_vars[target_idx] = value_to_assign
         if self.debug:
             print(
-                f"Stored {value_to_assign!r} into variable v{index} (via ->v operator)."
+                f"Stored {value_to_assign!r} into indexed variable v{index} (via ->v operator)."
             )
 
-    # Removed _get_variable_value as it's no longer used for v<n> based on new behavior.
-    # The 'v<n>' now modifies the stack directly.
-
     def make_constant(self, stack: Stack) -> None:
-        """Marks a variable position as constant.
+        """Marks a variable (named or indexed) or a stack position as constant.
 
-        Pops the top value from the stack, which must be a positive integer
-        representing the 1-based index to make constant. Once marked,
-        that position cannot be modified by `->v<n>` operations.
+        Pops the top value from the stack.
+        - If it's a string, it marks the named variable with that name as constant.
+        - If it's a positive integer, it marks that 1-based stack position as constant,
+          or marks the indexed variable at that position as constant.
 
         Args:
             stack: The interpreter's stack.
 
         Raises:
             ArslaStackUnderflowError: If there's no value on the stack.
-            ArslaRuntimeError: If the popped value is not a positive integer,
-                               or if the index is out of bounds for existing variables.
+            ArslaRuntimeError: If the popped value is of an invalid type,
+                               or if the target variable/position cannot be made constant.
         """
         if not stack:
             raise ArslaStackUnderflowError(1, 0, stack, "c")
 
-        index_to_const = stack.pop()
+        item_to_const = stack.pop()
 
-        if not isinstance(index_to_const, int) or index_to_const <= 0:
+        if isinstance(item_to_const, str):
+            # Case 1: Make a named variable constant
+            identifier_name = item_to_const
+            # Optionally: Allow making non-existent named vars constant for future use,
+            # or require them to be assigned first. Current implementation requires assignment first.
+            if identifier_name not in self._named_vars:
+                raise ArslaRuntimeError(
+                    f"Cannot make non-existent named variable '{identifier_name}' constant. Assign a value using '->' first.",
+                    stack.copy(),
+                    "c",
+                )
+            self._named_var_constants.add(identifier_name)
+            if self.debug:
+                print(f"Marked named variable '{identifier_name}' as constant.")
+
+        elif isinstance(item_to_const, int):
+            # Case 2: Integer. This could mean either an indexed variable OR a stack position.
+            # To handle both, we'll try to determine intent.
+            # A common convention is that small integers might be stack positions,
+            # while larger ones (if you had many) might be var indices.
+            # For simplicity, we'll assume if it's a valid stack index, it applies to the stack.
+            # Otherwise, it applies to an indexed variable.
+            
+            target_idx_0_based = item_to_const - 1
+
+            if target_idx_0_based < 0:
+                raise ArslaRuntimeError(
+                    f"Invalid index for 'c' command: {item_to_const}. Index must be 1 or greater.",
+                    stack.copy(),
+                    "c",
+                )
+            
+            # Check if it's a valid *current* stack position (after 'c' itself was popped)
+            # If the index is within the current stack bounds, assume it's a stack position constant
+            if target_idx_0_based < len(stack):
+                if target_idx_0_based in self._stack_position_constants:
+                    # Already constant, but not an error to try again.
+                    if self.debug:
+                        print(f"Stack position {item_to_const} is already constant.")
+                self._stack_position_constants.add(target_idx_0_based)
+                if self.debug:
+                    print(f"Marked stack position {item_to_const} as constant.")
+            else:
+                # Otherwise, assume it's an indexed variable
+                if target_idx_0_based >= len(self._indexed_vars):
+                    # For indexed variables, you typically need to assign to them first
+                    raise ArslaRuntimeError(
+                        f"Cannot make non-existent indexed variable v{item_to_const} constant. "
+                        f"Indexed variables only extend to v{len(self._indexed_vars)} (index {len(self._indexed_vars)-1}).",
+                        stack.copy(),
+                        "c",
+                    )
+                if target_idx_0_based in self._indexed_var_constants:
+                    if self.debug:
+                        print(f"Indexed variable v{item_to_const} is already constant.")
+                self._indexed_var_constants.add(target_idx_0_based)
+                if self.debug:
+                    print(f"Marked indexed variable v{item_to_const} as constant.")
+
+        else:
             raise ArslaRuntimeError(
-                f"Constant 'c' command requires a positive integer index, got {index_to_const!r}.",
+                f"Constant 'c' command requires a string identifier or a positive integer index, got {item_to_const!r} (type: {type(item_to_const).__name__}).",
                 stack.copy(),
                 "c",
-            )
-
-        target_idx = index_to_const - 1
-
-        # Check against _vars for existing variable (used by ->v, not stack elements)
-        # This 'c' command only makes variables (in _vars) constant, not stack positions.
-        if target_idx >= len(self._vars):
-            # Optionally, you might want to auto-extend _vars if making a non-existent var constant
-            # For now, it raises an error if the variable hasn't been touched by ->v yet.
-            raise ArslaRuntimeError(
-                f"Cannot make non-existent variable v{index_to_const} constant. "
-                f"Variables only extend to v{len(self._vars)} (index {len(self._vars)-1}).",
-                stack.copy(),
-                "c",
-            )
-
-        self._constants.add(target_idx)
-        if self.debug:
-            print(
-                f"Marked variable position {target_idx} (v{index_to_const}) as constant."
             )
 
     def set_max_capacity(self, stack: Stack) -> None:
