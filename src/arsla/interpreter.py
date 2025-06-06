@@ -592,7 +592,7 @@ class Interpreter:
         """
         if not self.stack:
             raise ArslaStackUnderflowError(1, 0, self.stack, "gv")
-        
+
         index = self.stack.pop()
         if not isinstance(index, int) or index <= 0:
             raise ArslaRuntimeError(
