@@ -166,7 +166,7 @@ class Interpreter:
                 or if there are not enough elements on the stack to get the block.
             ArslaStackUnderflowError: If there are not enough elements on the stack.
         """
-        block = self._pop_list() # Pop the code block
+        block = self._pop_list()  # Pop the code block
 
         # The condition for the loop is peeked from the top of the stack.
         # The initial condition should be present below the block.
