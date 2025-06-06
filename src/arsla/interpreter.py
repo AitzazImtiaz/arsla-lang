@@ -212,10 +212,7 @@ class Interpreter:
                 # Handle `->v<n>` for indexed variable assignment
                 elif node.type == TOKEN_TYPE.VAR_STORE:
                     self._store_indexed_variable(node.value)
-                # NEW: Handle `identifier` for retrieving named variable
-                elif node.type == TOKEN_TYPE.IDENTIFIER:
-                    self._get_named_variable(node.value)
-                # NEW: Handle `->` operator for named variable assignment
+                # Handle `->` operator for named variable assignment
                 elif node.type == TOKEN_TYPE.ARROW_ASSIGN:
                     # After '->', the next token *must* be an identifier
                     try:
@@ -226,16 +223,21 @@ class Interpreter:
                             self.stack.copy(),
                             "->",
                         )
-                    if not (
-                        isinstance(identifier_node, Token)
-                        and identifier_node.type == TOKEN_TYPE.IDENTIFIER
-                    ):
+                    if not (isinstance(identifier_node, Token) and identifier_node.type == TOKEN_TYPE.IDENTIFIER):
                         raise ArslaRuntimeError(
                             f"Expected identifier after '->' operator, got {identifier_node.type.name} with value {identifier_node.value!r}",
                             self.stack.copy(),
                             "->",
                         )
                     self._store_named_variable(identifier_node.value)
+                # THIS IS THE CRITICAL CHANGE BLOCK
+                elif node.type == TOKEN_TYPE.IDENTIFIER:
+                    # First, try to execute it as a command
+                    if node.value in self.commands:
+                        self._execute_symbol(node.value) # _execute_symbol calls the command
+                    else:
+                        # If not a command, then treat it as a named variable to get
+                        self._get_named_variable(node.value)
                 elif node.type == TOKEN_TYPE.BLOCK_START:
                     block = self._parse_block(node_iterator)
                     if len(self.stack) >= self.max_stack_size:
@@ -419,12 +421,17 @@ class Interpreter:
         Raises:
             ArslaRuntimeError: If the named variable has not been assigned a value.
         """
-        if name not in self._named_vars:
+        if name not in self.commands and name not in self._named_vars: # Check if it's a command before a variable
             raise ArslaRuntimeError(
                 f"Undefined variable '{name}'. Assign a value using 'value ->{name}' first.",
                 self.stack.copy(),
                 name,
             )
+        
+        # If it's a command, execute it instead of getting a variable
+        if name in self.commands:
+            self._execute_symbol(name)
+            return
 
         if len(self.stack) >= self.max_stack_size:
             raise ArslaRuntimeError(
@@ -731,83 +738,106 @@ class Interpreter:
         2. `true_block`: A list representing the code to execute if the condition is true.
         3. `condition`: A value that will be evaluated for truthiness.
 
-        Pops all three elements and then executes either `true_block` or `false_block`.
-
         Raises:
-            ArslaRuntimeError: If `true_block` or `false_block` are not lists.
+            ArslaRuntimeError: If `false_block` or `true_block` are not lists,
+                               or if any other runtime error occurs during block execution.
             ArslaStackUnderflowError: If there are fewer than three elements on the stack.
         """
-        if len(self.stack) < 3:  # Explicit check for required elements
+        if len(self.stack) < 3:
             raise ArslaStackUnderflowError(3, len(self.stack), self.stack, "?")
 
-        false_block = self._pop_list(context="?")  # Pass '?' as context
-        true_block = self._pop_list(context="?")  # Pass '?' as context
-        cond = self._pop()
-        if self._is_truthy(cond):
+        false_block = self._pop_list(context="? (false block)")
+        true_block = self._pop_list(context="? (true block)")
+        condition = self._pop(context="? (condition)")
+
+        if self.debug:
+            print(f"Ternary operator. Condition: {condition!r}, Truthy: {self._is_truthy(condition)}")
+
+        if self._is_truthy(condition):
+            if self.debug:
+                print("Ternary: Condition is truthy, executing true block.")
             self._execute_nodes(iter(true_block))
         else:
+            if self.debug:
+                print("Ternary: Condition is falsy, executing false block.")
             self._execute_nodes(iter(false_block))
 
-    def _pop(self) -> Atom:
-        """Removes and returns the top element from the stack.
+    def _pop(self, context: str = "pop operation") -> Atom:
+        """Pops the top element from the stack.
+
+        Args:
+            context: A string describing the operation that triggered the pop,
+                     used for more informative error messages.
 
         Returns:
-            The top `Atom` from the stack.
+            The popped element.
 
         Raises:
             ArslaStackUnderflowError: If the stack is empty.
         """
         if not self.stack:
-            raise ArslaStackUnderflowError(1, 0, self.stack, "_pop")
+            raise ArslaStackUnderflowError(1, 0, self.stack, context)
         return self.stack.pop()
 
-    def _peek(self) -> Atom:
-        """Returns the top element of the stack without removing it.
-
-        If the stack is empty, returns 0 (which is falsy in Arsla).
-
-        Returns:
-            The top `Atom` from the stack, or 0 if the stack is empty.
-        """
-        return self.stack[-1] if self.stack else 0
-
-    def _pop_list(self, context: str = "block") -> list:
-        """Removes and returns the top element from the stack, asserting it's a list.
+    def _pop_list(self, context: str = "pop list operation") -> list:
+        """Pops the top element from the stack and asserts it is a list.
 
         Args:
-            context: An optional string indicating the context or command that required the list,
+            context: A string describing the operation that triggered the pop,
                      used for more informative error messages.
 
         Returns:
-            The top element from the stack, as a list.
+            The popped list.
 
         Raises:
-            ArslaRuntimeError: If the stack is empty, or the top element is not a list.
+            ArslaStackUnderflowError: If the stack is empty.
+            ArslaRuntimeError: If the popped element is not a list.
         """
-        item = self._pop()
+        item = self._pop(context)
         if not isinstance(item, list):
             raise ArslaRuntimeError(
-                f"Expected a code block (list), but found {type(item).__name__} with value {item!r}.",
+                f"Expected a code block (list) on stack for {context}, got {item!r} (type: {type(item).__name__}).",
                 self.stack.copy(),
                 context,
             )
         return item
 
-    def _is_truthy(self, val: Atom) -> bool:
-        """Determines the truthiness of a value according to Arsla's rules.
-
-        - Numbers are truthy if not zero.
-        - Strings and lists are truthy if not empty.
-        - Other types (if they appear) are evaluated using Python's `bool()`.
+    def _peek(self, offset: int = 1, context: str = "peek operation") -> Atom:
+        """Peeks at an element on the stack without removing it.
 
         Args:
-            val: The `Atom` to check for truthiness.
+            offset: The 1-based offset from the top of the stack (1 for top, 2 for second from top, etc.).
+            context: A string describing the operation that triggered the peek,
+                     used for more informative error messages.
 
         Returns:
-            True if the value is considered truthy, False otherwise.
+            The element at the specified offset.
+
+        Raises:
+            ArslaStackUnderflowError: If the stack does not have enough elements for the specified offset.
         """
-        if isinstance(val, (int, float)):
-            return val != 0
-        if isinstance(val, (str, list)):
-            return len(val) > 0
-        return bool(val)
+        if len(self.stack) < offset:
+            raise ArslaStackUnderflowError(offset, len(self.stack), self.stack, context)
+        return self.stack[-offset]
+
+    def _is_truthy(self, value: Any) -> bool:
+        """Determines the truthiness of a value in Arsla.
+
+        - Numbers: Non-zero numbers are truthy. Zero is falsy.
+        - Strings: Non-empty strings are truthy. Empty strings are falsy.
+        - Lists (blocks): Non-empty lists are truthy. Empty lists are falsy.
+
+        Args:
+            value: The value to check for truthiness.
+
+        Returns:
+            True if the value is truthy, False otherwise.
+        """
+        if isinstance(value, (int, float)):
+            return value != 0
+        elif isinstance(value, str):
+            return bool(value)
+        elif isinstance(value, list):
+            return bool(value)
+        # All other types (e.g., None, if they were to appear) would be falsy by default
+        return False
