@@ -166,23 +166,26 @@ class Interpreter:
                 or if the block doesn't leave a value on the stack for the next condition.
             ArslaStackUnderflowError: If there are not enough elements on the stack.
         """
-        block = self._pop_list() # Pop the code block
-        current_condition = self._pop() # Pop the initial condition for the first check
+        block = self._pop_list()  # Pop the code block
+        current_condition = self._pop()  # Pop the initial condition for the first check
 
         while True:
             if not self._is_truthy(current_condition):
-                break # Exit loop if the current condition is falsy
+                break  # Exit loop if the current condition is falsy
 
-            self.run(block) # Execute the loop body
+            self.run(block)  # Execute the loop body
 
             # After block execution, a new condition for the next iteration
             # is expected to be on top of the stack.
             if not self.stack:
                 raise ArslaRuntimeError(
                     "While loop block did not provide a new condition for next iteration.",
-                    self.stack.copy(), "W"
+                    self.stack.copy(),
+                    "W",
                 )
-            current_condition = self._pop() # Consume the new condition for the next check
+            current_condition = (
+                self._pop()
+            )  # Consume the new condition for the next check
 
     def ternary(self) -> None:
         """Executes one of two code blocks based on a boolean condition.
