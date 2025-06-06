@@ -2,14 +2,15 @@
 
 This module provides the core functionality for executing Arsla programs,
 including stack manipulation, command dispatching, and control flow
-operations like while loops and ternary conditionals.
+operations like while loops and ternary conditionals, and variable assignment.
 """
 
 from typing import Any, Callable, Dict, List, Union
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import Token
+from .lexer import Token, TOKEN_TYPE # Import TOKEN_TYPE from lexer
+
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -113,25 +114,36 @@ class Interpreter:
                 `str`, `int`, `float`, or `list`.
 
         Raises:
-            ArslaRuntimeError: If an unknown command symbol is encountered or
-                an unexpected AST node type is found.
+            ArslaRuntimeError: If an unknown command symbol is encountered,
+                an unexpected AST node type is found, or an error occurs during
+                variable assignment.
         """
         for node in ast:
             if self.debug:
                 print(f"Node: {node!r}, Stack before: {self.stack}")
 
             if isinstance(node, Token):
-                if node.type == "SYMBOL":
+                if node.type == TOKEN_TYPE.SYMBOL:
                     self._execute_symbol(node.value)
-                else:
-                    # For other token types (e.g., NUMBER, STRING, LIST), push their value
+                elif node.type == TOKEN_TYPE.VAR_SETTER:
+                    self._set_variable(node.value)
+                elif node.type == TOKEN_TYPE.NUMBER or node.type == TOKEN_TYPE.STRING:
                     self.stack.append(node.value)
+                elif node.type in (TOKEN_TYPE.BLOCK_START, TOKEN_TYPE.BLOCK_END):
+                    self.stack.append(node.value)
+                else:
+                    raise ArslaRuntimeError(
+                        f"Unexpected token type in AST: {node.type.name} with value {node.value!r}",
+                        self.stack.copy(),
+                        "AST"
+                    )
             elif isinstance(node, (str, int, float, list)):
-                # Handle raw literals that might not be wrapped in Tokens
                 self.stack.append(node)
             else:
                 raise ArslaRuntimeError(
-                    f"Unexpected AST node: {node!r}", self.stack.copy(), "AST"
+                    f"Unexpected AST node: {node!r} (type: {type(node).__name__})",
+                    self.stack.copy(),
+                    "AST"
                 )
             if self.debug:
                 print(f"Stack after: {self.stack}\n")
@@ -150,27 +162,54 @@ class Interpreter:
         else:
             raise ArslaRuntimeError(f"Unknown command: {sym}", self.stack.copy(), sym)
 
+    def _set_variable(self, index: int) -> None:
+        """Sets the element at the specified 1-based stack index.
+
+        Pops the top value from the stack and places it at `index - 1`.
+        If the stack is not large enough, it's padded with zeros to accommodate
+        the new index, effectively creating a new variable slot.
+
+        Args:
+            index: The 1-based index (e.g., 2 for v2).
+
+        Raises:
+            ArslaStackUnderflowError: If there's no value on the stack to set.
+            ArslaRuntimeError: If the provided index is invalid (less than 1).
+        """
+        value_to_set = self._pop()
+
+        target_idx = index - 1
+
+        if target_idx < 0:
+            raise ArslaRuntimeError(
+                f"Invalid variable index: {index}. Index must be 1 or greater.",
+                self.stack.copy(),
+                f"v{index}"
+            )
+
+        while len(self.stack) <= target_idx:
+            self.stack.append(0)
+
+        self.stack[target_idx] = value_to_set
+
+
     def while_loop(self) -> None:
         """Executes a block of code repeatedly as long as the top of the stack is truthy.
 
         The top element on the stack is expected to be a list (the code block).
-        The element below it is used as the initial condition.
-        The loop continues as long as the value at the *top of the stack*
+        The element below it serves as the initial condition.
+        The loop continues as long as the value at the **top of the stack**
         remains truthy *before* each iteration of the block.
         The block itself is responsible for modifying the stack in a way that
-        eventually leads to a falsy value at the top for termination,
-        otherwise the loop will run infinitely.
+        eventually leads to a falsy value at the top for termination;
+        otherwise, the loop will run infinitely.
 
         Raises:
-            ArslaRuntimeError: If the stack does not contain a list for the block
-                or if there are not enough elements on the stack to get the block.
+            ArslaRuntimeError: If the stack does not contain a list for the block.
             ArslaStackUnderflowError: If there are not enough elements on the stack.
         """
-        block = self._pop_list()  # Pop the code block
+        block = self._pop_list()
 
-        # The condition for the loop is peeked from the top of the stack.
-        # The initial condition should be present below the block.
-        # The block's execution will determine what's on top for the next check.
         while self._is_truthy(self._peek()):
             self.run(block)
 
@@ -212,7 +251,7 @@ class Interpreter:
     def _peek(self) -> Atom:
         """Returns the top element of the stack without removing it.
 
-        If the stack is empty, returns 0 (which is falsy).
+        If the stack is empty, returns 0 (which is falsy in Arsla).
 
         Returns:
             The top `Atom` from the stack, or 0 if the stack is empty.
