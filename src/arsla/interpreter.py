@@ -6,10 +6,13 @@ operations like while loops and ternary conditionals, and variable assignment.
 """
 
 from typing import Any, Callable, Dict, List, Union
+import sys
+import time # For tracking execution time
 
 from .builtins import BUILTINS
 from .errors import ArslaRuntimeError, ArslaStackUnderflowError
-from .lexer import TOKEN_TYPE, Token
+from .lexer import Token, TOKEN_TYPE
+
 
 Number = Union[int, float]
 Atom = Union[Number, str, list]
@@ -24,17 +27,35 @@ class Interpreter:
     Supports debug mode for tracing execution.
     """
 
-    def __init__(self, debug: bool = False):
+    DEFAULT_MAX_STACK_SIZE = 1000  # Max number of items on the stack
+    DEFAULT_MAX_STACK_MEMORY_BYTES = 10 * 1024 * 1024  # 10 MB limit for stack content
+    DEFAULT_MAX_EXECUTION_TIME_SECONDS = 5 # 5 seconds execution limit
+
+    def __init__(self, debug: bool = False,
+                 max_stack_size: int = DEFAULT_MAX_STACK_SIZE,
+                 max_stack_memory_bytes: int = DEFAULT_MAX_STACK_MEMORY_BYTES,
+                 max_execution_time_seconds: float = DEFAULT_MAX_EXECUTION_TIME_SECONDS):
         """Initializes the Interpreter.
 
         Args:
             debug: If True, enables debug mode, printing stack state
                 and nodes during execution.
+            max_stack_size: The maximum allowed number of items on the stack.
+            max_stack_memory_bytes: The maximum allowed memory footprint of the stack in bytes.
+            max_execution_time_seconds: The maximum allowed time for program execution in seconds.
         """
         self.stack: Stack = []
         self.debug = debug
         self.commands: Dict[str, Command] = self._init_commands()
         self._constants: set[int] = set()
+        self.max_stack_size = max_stack_size
+        self.max_stack_memory_bytes = max_stack_memory_bytes
+        self.max_execution_time_seconds = max_execution_time_seconds
+        self._start_time = time.time() # To track overall program execution time
+
+        # To detect problematic while loops (e.g., 1 [2] W)
+        # {id(stack_slice): {'initial_top_value': Any, 'iteration_count': int}}
+        self._while_loop_state: Dict[int, Dict[str, Any]] = {}
 
     def _init_commands(self) -> Dict[str, Command]:
         """Initializes and returns a dictionary of available commands.
@@ -107,59 +128,6 @@ class Interpreter:
     def run(self, ast: List[Any]) -> None:
         """Executes the given Abstract Syntax Tree (AST).
 
-        The interpreter processes each node in the AST, pushing literals onto
-        the stack or executing commands based on symbols.
-
-        Args:
-            ast: A list of nodes representing the AST. Each node can be a `Token`,
-                `str`, `int`, `float`, or `list`.
-
-        Raises:
-            ArslaRuntimeError: If an unknown command symbol is encountered,
-                an unexpected AST node type is found, or an error occurs during
-                variable assignment.
-        """
-        for node in ast:
-            if self.debug:
-                print(f"Node: {node!r}, Stack before: {self.stack}")
-
-            if isinstance(node, Token):
-                if node.type == TOKEN_TYPE.SYMBOL:
-                    self._execute_symbol(node.value)
-                elif node.type == TOKEN_TYPE.VAR_SETTER:
-                    self._set_variable(node.value)
-                elif node.type == TOKEN_TYPE.NUMBER or node.type == TOKEN_TYPE.STRING:
-                    self.stack.append(node.value)
-                elif node.type in (TOKEN_TYPE.BLOCK_START, TOKEN_TYPE.BLOCK_END):
-                    # We need to parse blocks here too, not just push tokens
-                    # This indicates an issue in `run` if blocks are expected as lists
-                    # and not parsed within this loop. Assuming `_execute_nodes` is meant
-                    # to handle block parsing for nested execution, and `run` is top-level.
-                    # The original `run` was a simple loop, `_execute_nodes` now handles parsing.
-                    # Let's adjust `run` to call `_execute_nodes` for the top-level AST.
-                    pass # This branch should ideally not be reached if lexer/parser are correct.
-                else:
-                    raise ArslaRuntimeError(
-                        f"Unexpected token type in AST: {node.type.name} with value {node.value!r}",
-                        self.stack.copy(),
-                        "AST"
-                    )
-            elif isinstance(node, (str, int, float, list)):
-                self.stack.append(node)
-            else:
-                raise ArslaRuntimeError(
-                    f"Unexpected AST node: {node!r} (type: {type(node).__name__})",
-                    self.stack.copy(),
-                    "AST"
-                )
-            if self.debug:
-                print(f"Stack after: {self.stack}\n")
-
-
-    # Correcting `run` to use `_execute_nodes` for proper block parsing
-    def run(self, ast: List[Any]) -> None:
-        """Executes the given Abstract Syntax Tree (AST).
-
         This is the main entry point for executing a program. It initializes
         an iterator over the AST nodes and begins execution.
 
@@ -172,9 +140,9 @@ class Interpreter:
                 an unexpected AST node type is found, an error occurs during
                 variable assignment, or block parsing fails.
         """
+        self._start_time = time.time() # Reset start time for each run call
         program_iterator = iter(ast)
         self._execute_nodes(program_iterator)
-
 
     def _execute_nodes(self, node_iterator: Any) -> None:
         """Internal method to process nodes from an iterator (either main AST or a block).
@@ -183,6 +151,33 @@ class Interpreter:
             node_iterator: An iterator yielding `Token` objects or raw literals.
         """
         while True:
+            # Check overall execution time
+            if time.time() - self._start_time > self.max_execution_time_seconds:
+                raise ArslaRuntimeError(
+                    f"Execution time limit exceeded: program ran for over {self.max_execution_time_seconds} seconds.",
+                    self.stack.copy(),
+                    "time_limit"
+                )
+
+            # Check stack size before each operation that might grow it
+            if len(self.stack) > self.max_stack_size:
+                raise ArslaRuntimeError(
+                    f"Stack overflow (item count): exceeded maximum stack size of {self.max_stack_size} items.",
+                    self.stack.copy(),
+                    "stack_limit_items"
+                )
+
+            # Check stack memory usage before each operation
+            current_stack_memory = sum(sys.getsizeof(item) for item in self.stack)
+            if current_stack_memory > self.max_stack_memory_bytes:
+                raise ArslaRuntimeError(
+                    f"Stack overflow (memory): exceeded maximum stack memory of {self.max_stack_memory_bytes / (1024*1024):.2f} MB. "
+                    f"Current usage: {current_stack_memory / (1024*1024):.2f} MB.",
+                    self.stack.copy(),
+                    "stack_limit_memory"
+                )
+
+
             try:
                 node = next(node_iterator)
             except StopIteration:
@@ -237,6 +232,14 @@ class Interpreter:
         """
         block_content = []
         while True:
+            # Check overall execution time inside block parsing
+            if time.time() - self._start_time > self.max_execution_time_seconds:
+                raise ArslaRuntimeError(
+                    f"Execution time limit exceeded during block parsing: program ran for over {self.max_execution_time_seconds} seconds.",
+                    self.stack.copy(),
+                    "time_limit (parsing)"
+                )
+            
             try:
                 node = next(node_iterator)
             except StopIteration:
@@ -289,7 +292,8 @@ class Interpreter:
         Raises:
             ArslaStackUnderflowError: If there's no value on the stack to set.
             ArslaRuntimeError: If the provided index is invalid (less than 1)
-                               or if the target position is a constant.
+                               or if the target position is a constant,
+                               or if stack memory/item limits are exceeded.
         """
         value_to_set = self._pop()
 
@@ -303,15 +307,32 @@ class Interpreter:
             )
 
         if target_idx in self._constants:
-            self.stack.append(value_to_set)
+            self.stack.append(value_to_set) # Push back the value
             raise ArslaRuntimeError(
                 f"Cannot write to constant position v{index}.",
                 self.stack.copy(),
                 f"v{index}"
             )
 
+        # Pad stack with zeros if target_idx is beyond current stack size
         while len(self.stack) <= target_idx:
             self.stack.append(0)
+            # Check limits immediately after appending, before next iteration
+            if len(self.stack) > self.max_stack_size:
+                raise ArslaRuntimeError(
+                    f"Stack overflow (item count) during variable assignment to v{index}: exceeded maximum stack size of {self.max_stack_size} items.",
+                    self.stack.copy(),
+                    f"v{index}"
+                )
+            current_stack_memory = sum(sys.getsizeof(item) for item in self.stack)
+            if current_stack_memory > self.max_stack_memory_bytes:
+                raise ArslaRuntimeError(
+                    f"Stack overflow (memory) during variable assignment to v{index}: exceeded maximum stack memory of {self.max_stack_memory_bytes / (1024*1024):.2f} MB. "
+                    f"Current usage: {current_stack_memory / (1024*1024):.2f} MB.",
+                    self.stack.copy(),
+                    f"v{index}"
+                )
+
 
         self.stack[target_idx] = value_to_set
 
@@ -369,14 +390,91 @@ class Interpreter:
         condition for the *next* iteration. If the stack is empty, 0 (falsy) is assumed.
 
         Raises:
-            ArslaRuntimeError: If the stack does not contain a list for the body block.
+            ArslaRuntimeError: If the stack does not contain a list for the body block,
+                               or if the loop appears to be non-terminating due to a
+                               constant non-zero numeric condition or excessive stack growth/memory usage,
+                               or if overall execution time limit is exceeded.
             ArslaStackUnderflowError: If there are not enough elements on the stack initially
                                       to pop the body block.
         """
         body_block = self._pop_list()
 
+        # Unique identifier for this specific while loop instance (to handle nested loops)
+        loop_id = id(body_block)
+
+        # Initialize or update loop state for this instance
+        if loop_id not in self._while_loop_state:
+            self._while_loop_state[loop_id] = {'initial_top_value': None, 'iteration_count': 0}
+
+        current_loop_state = self._while_loop_state[loop_id]
+
+        if current_loop_state['initial_top_value'] is None:
+             peeked_value = self._peek()
+             if isinstance(peeked_value, (int, float)) and self._is_truthy(peeked_value):
+                 current_loop_state['initial_top_value'] = peeked_value
+             else:
+                 current_loop_state['initial_top_value'] = "NON_NUMERIC_OR_FALSY" # Mark as not tracking numeric constancy
+
+        MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE = 1000 # Heuristic for non-terminating numeric loops
+
         while self._is_truthy(self._peek()):
+            current_loop_state['iteration_count'] += 1
+
+            if self.debug:
+                print(f"While loop (ID: {loop_id}) iteration {current_loop_state['iteration_count']}. Condition: {self._peek()}")
+
+            # Check overall execution time
+            if time.time() - self._start_time > self.max_execution_time_seconds:
+                raise ArslaRuntimeError(
+                    f"Execution time limit exceeded within while loop (ID: {loop_id}): program ran for over {self.max_execution_time_seconds} seconds.",
+                    self.stack.copy(),
+                    "W (time_limit)"
+                )
+
+            # Check for non-terminating numeric condition
+            if (current_loop_state['initial_top_value'] is not None and
+                current_loop_state['initial_top_value'] != "NON_NUMERIC_OR_FALSY"): # Only check if we're tracking a numeric constant
+                current_top = self._peek()
+                if (isinstance(current_top, (int, float)) and
+                    self._is_truthy(current_top) and
+                    current_top == current_loop_state['initial_top_value']): # Compare to the originally recorded numeric value
+
+                    if current_loop_state['iteration_count'] > MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE:
+                        raise ArslaRuntimeError(
+                            f"Infinite loop detected: Numeric condition '{current_top}' "
+                            f"remained unchanged for over {MAX_NUMERIC_ITERATIONS_WITHOUT_CHANGE} iterations. "
+                            f"Expected termination (e.g., reaching 0 or changing value/type).",
+                            self.stack.copy(),
+                            "W (infinite numeric)"
+                        )
+                else:
+                    # Condition changed (became falsy, different value, or different type), stop tracking numeric constancy
+                    current_loop_state['initial_top_value'] = "NON_NUMERIC_OR_FALSY"
+
+
+            # Check stack size (item count) within while loop
+            if len(self.stack) > self.max_stack_size:
+                raise ArslaRuntimeError(
+                    f"Stack overflow (item count) within while loop (ID: {loop_id}): exceeded maximum stack size of {self.max_stack_size} items.",
+                    self.stack.copy(),
+                    "W (stack_limit_items)"
+                )
+
+            # Check stack memory usage within while loop
+            current_stack_memory = sum(sys.getsizeof(item) for item in self.stack)
+            if current_stack_memory > self.max_stack_memory_bytes:
+                raise ArslaRuntimeError(
+                    f"Stack overflow (memory) within while loop (ID: {loop_id}): exceeded maximum stack memory of {self.max_stack_memory_bytes / (1024*1024):.2f} MB. "
+                    f"Current usage: {current_stack_memory / (1024*1024):.2f} MB.",
+                    self.stack.copy(),
+                    "W (stack_limit_memory)"
+                )
+
             self._execute_nodes(iter(body_block))
+
+        # Clean up tracking for this loop instance
+        if loop_id in self._while_loop_state:
+            del self._while_loop_state[loop_id]
 
 
     def ternary(self) -> None:
