@@ -1,6 +1,9 @@
 # .github/workflows/coverage.yml
 name: Run Tests & Upload Coverage
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
