@@ -85,4 +85,26 @@ language, that aims to golf problems or store data
         protected and manually reviewed all merge requests to our work by you
 #### Use Cases
 - We expect our product to build and interpret the files you make
-- We intent this product to be used for golfing and data processing
+- We intend this product to be used for golfing and data processing
+
+## Usage Agreement
+1. We do not condone the use of Arsla in any ways that violate our Zero Toleration;
+   - Use of Arsla in racist, discriminatory, or disruptive content
+     1. Use of the interpreter in recording act of harm, genocidial or terrorist intent or
+        activities
+     2. Use in recording data related to harboring weaponry, nuclear or substance related data, where
+        substance is not limited to illicited drugs, but also addictive substances
+   - Use of Arsla Walrus&trade; files as a mass display of commiting crimes
+2. No use of this language constitutes any relationship or venture between you and us;
+3. Arsla will not be constituting or associating itself to any means of violating Standard Rules Charter
+   of the Broke Consortium unless clashing with rules in legal documents at Arsla;
+   - The development of Arsla will not involve any financial means
+   - The development of Arsla under this tree will not involve development in Graphical User Interface
+   - Arsla would be limited to joint ventures and would not collaborate with any entities
+     1. Standard Rule 3 prohibits Pull Requests from anyone who is not a member of consortium
+     2. Arsla does welcome contributors to make Pull Requests which would be thoroughly reviewed
+   - The production of Arsla does not constitute any illegal activity, and aims to promote humanity
+   - When contributing your code, it must conform to `LICENSE` file, which defines certain limits of
+     merchantibility and warranty
+     1. This is in clash with Standard Rule 4 which allows anyone to make forks without citing original
+        repository and restrictions
