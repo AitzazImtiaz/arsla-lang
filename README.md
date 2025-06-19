@@ -7,7 +7,7 @@
 [![Code Coverage](https://img.shields.io/badge/Coverage-100%25-success)](tests/)
 
 Arsla is a **stack-based code golfing language** developed for implicit operations in a modular approach storing information to stack.
-Arsla uses inituitive approach inspired from [Vyxal](https://vyxal.org/) and [05AB1E](https://github.com/Adriandmen/05AB1E) in the development.
+Arsla uses inituitive approach inspired from [Vyxal](https://github.com/Vyxal/Vyxal) and [05AB1E](https://github.com/Adriandmen/05AB1E) in the development.
 Arsla is a postfix notation based language inspired from the concept of Reverse Polish Notation in its implementation.
 
 The language was inspired by Dijkstra's quote
