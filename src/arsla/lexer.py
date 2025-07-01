@@ -64,6 +64,8 @@ def _load_symbols(filename="symbols.txt"):
     except (FileNotFoundError, ModuleNotFoundError):
         # Fallback for local development or direct script execution
         try:
+            if "../" in filename or "..\\" in filename:
+                raise Exception("Invalid file path")
             with open(filename, encoding="utf-8") as f:
                 data = f.read()
         except FileNotFoundError:
